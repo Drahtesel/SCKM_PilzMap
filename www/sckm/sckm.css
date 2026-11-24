@@ -1,7 +1,194 @@
 /* ============================================================================
-   SCKM Stylesheet: Beginner-Wissenstreppe, Glass-Box & Knowledge Graph
+   SCKM Stylesheet: Einsteigerfreundliche Standort-Erklärung (🔍),
+   Klickbare Fachbegriffe (💡), Pilz-Heatmap (🔥) & Lexikon/Wissensgraph (📖)
    (www/sckm/sckm.css)
    ============================================================================ */
+
+/* === 1. Eingefärbte, klickbare Fachbegriffe & Glossar-Popover === */
+.sckm-term {
+    display: inline;
+    background: #dcfce7;
+    color: #14532d;
+    border: none;
+    border-bottom: 1.5px dotted #15803d;
+    border-radius: 4px;
+    padding: 0 4px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.sckm-term:hover {
+    background: #bbf7d0;
+}
+
+#sckm-term-popover {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    z-index: 4200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+#sckm-term-popover.offen {
+    display: flex;
+}
+.sckm-pop-card {
+    background: #fff;
+    width: min(380px, 94vw);
+    border-radius: 16px;
+    border-top: 5px solid #1a7a45;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+    padding: 16px 18px;
+    animation: sckm-pop-in 0.18s ease-out;
+}
+@keyframes sckm-pop-in {
+    from {
+        transform: scale(0.93);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+.sckm-pop-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.sckm-pop-cat {
+    display: inline-block;
+    background: #f0fdf4;
+    color: #15803d;
+    font-size: 0.72em;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-bottom: 3px;
+}
+.sckm-pop-head h4 {
+    margin: 0;
+    font-size: 1.02em;
+    color: #0f172a;
+}
+.sckm-pop-head button {
+    background: #f1f5f9;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1em;
+    color: #334155;
+}
+.sckm-pop-def {
+    font-size: 0.88em;
+    color: #334155;
+    line-height: 1.48;
+    margin-bottom: 12px;
+}
+.sckm-pop-tip {
+    background: #f0fdf4;
+    border-left: 3.5px solid #2ca25f;
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 0.82em;
+    color: #14532d;
+    line-height: 1.42;
+}
+
+/* === 2. Pilz-Heatmap Schnellschalter oben auf der Karte === */
+#sckm-heatmap-bar {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 86px);
+    right: 14px;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+#sckm-heatmap-toggle-btn {
+    background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1.5px solid #cbd5e1;
+    color: #1e293b;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.86em;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+    transition: all 0.18s;
+}
+#sckm-heatmap-toggle-btn.aktiv {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    border-color: #15803d;
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(22, 163, 74, 0.38);
+}
+#sckm-heatmap-controls {
+    display: none;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 8px 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    font-size: 0.78em;
+    max-width: 270px;
+}
+#sckm-heatmap-bar.offen #sckm-heatmap-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+#sckm-heatmap-controls select {
+    width: 100%;
+    padding: 5px 8px;
+    border-radius: 7px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.95em;
+    font-weight: 600;
+}
+.sckm-hm-legend-mini {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 0.9em;
+    color: #475569;
+}
+.sckm-hm-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 3px;
+}
+
+/* Weicher Gaußscher Heatmap-Filter für die Leaflet-Pane */
+.sckm-heatmap-pane svg,
+.sckm-heatmap-blob {
+    filter: blur(8px) saturate(1.35);
+    pointer-events: none;
+}
+
+/* === 3. FAB-Aktiv-Zustände === */
+#sckm-btn.aktiv,
+#lexikon-btn.aktiv {
+    background: #1a7a45;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(26, 122, 69, 0.45);
+}
 
 #wissenstreppe-panel-backdrop {
     display: none;
@@ -15,19 +202,13 @@
     display: block;
 }
 
-#sckm-btn.aktiv {
-    background: #1a7a45;
-    color: #fff;
-    box-shadow: 0 4px 16px rgba(26, 122, 69, 0.45);
-}
-
-/* === Beginner-Wissenstreppen-Drawer (links, analog zu #filter-panel) === */
+/* === 4. Vereinfachtes Standort-Erklärpanel (🔍 links) === */
 #wissenstreppe-panel {
     position: fixed;
     top: 0;
     left: 0;
     bottom: 0;
-    width: min(440px, 94vw);
+    width: min(430px, 94vw);
     background: #f8fafc;
     z-index: 3100;
     box-shadow: 6px 0 30px rgba(0, 0, 0, 0.22);
@@ -44,7 +225,7 @@
 #wissenstreppe-panel-kopf {
     background: linear-gradient(135deg, #1a7a45, #0f5132);
     color: #fff;
-    min-height: calc(env(safe-area-inset-top) + 64px);
+    min-height: calc(env(safe-area-inset-top) + 62px);
     padding: 12px 16px;
     display: flex;
     justify-content: space-between;
@@ -62,7 +243,7 @@
 }
 #wissenstreppe-panel-kopf .sckm-kopf-titel small {
     font-size: 0.74em;
-    opacity: 0.86;
+    opacity: 0.88;
 }
 #wissenstreppe-panel-kopf button {
     background: rgba(255, 255, 255, 0.16);
@@ -81,27 +262,37 @@
     padding: 12px 14px 24px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 9px;
 }
 
 .sckm-standort-bar {
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 11px;
-    padding: 10px 12px;
+    padding: 9px 11px;
 }
 .sckm-st-title {
-    font-size: 0.9em;
+    font-size: 0.88em;
     color: #0f172a;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
 }
 .sckm-st-title small {
     color: #64748b;
 }
 .sckm-st-hint {
-    font-size: 0.75em;
+    font-size: 0.74em;
     color: #64748b;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
+}
+
+.sckm-tip-strip {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 9px;
+    padding: 6px 10px;
+    font-size: 0.76em;
+    color: #166534;
+    line-height: 1.38;
 }
 
 .sckm-chip-wrap {
@@ -115,7 +306,7 @@
     color: #334155;
     border-radius: 999px;
     padding: 4px 10px;
-    font-size: 0.75em;
+    font-size: 0.74em;
     font-weight: 600;
     cursor: pointer;
 }
@@ -125,167 +316,37 @@
     color: #fff;
 }
 
-/* === 4 Stufen-Navigation === */
-.sckm-steps-nav {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 5px;
-}
-.sckm-step-tab {
-    background: #fff;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 9px;
-    padding: 6px 4px;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    transition: all 0.15s;
-}
-.sckm-step-tab .sckm-step-num {
-    font-size: 0.68em;
-    text-transform: uppercase;
-    color: #64748b;
-    font-weight: 700;
-}
-.sckm-step-tab .sckm-step-name {
-    font-size: 0.76em;
-    font-weight: 700;
-    color: #1e293b;
-    margin-top: 2px;
-}
-.sckm-step-tab.aktiv {
-    background: #ecfdf5;
-    border-color: #1a7a45;
-    box-shadow: 0 2px 8px rgba(26, 122, 69, 0.15);
-}
-.sckm-step-tab.aktiv .sckm-step-num,
-.sckm-step-tab.aktiv .sckm-step-name {
-    color: #0f5132;
-}
-
-.sckm-step-explain {
-    background: #f0fdf4;
-    border-left: 3.5px solid #2ca25f;
-    border-radius: 7px;
-    padding: 7px 10px;
-    font-size: 0.78em;
-    color: #1e293b;
-    line-height: 1.4;
-}
-
 .sckm-card {
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 12px;
+    padding: 11px;
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 8px;
 }
 .sckm-card h4 {
-    font-size: 0.94em;
+    font-size: 0.88em;
     color: #0f172a;
     margin: 0;
 }
-.sckm-desc {
-    font-size: 0.8em;
-    color: #475569;
-    line-height: 1.4;
-}
 
-.sckm-badge-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 6px;
-}
-.sckm-pill {
-    background: #dcfce7;
-    color: #166534;
-    font-size: 0.72em;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 999px;
-}
-.sckm-pill-muted {
-    font-size: 0.72em;
-    color: #64748b;
-    font-weight: 600;
-}
-
-/* === Stufe 1 Tabelle === */
-.sckm-raw-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.78em;
-}
-.sckm-raw-table th,
-.sckm-raw-table td {
-    border-bottom: 1px solid #e2e8f0;
-    padding: 6px 4px;
-    text-align: left;
-}
-.sckm-raw-table th {
-    color: #64748b;
-    font-size: 0.9em;
-}
-.sckm-raw-table code {
-    background: #f1f5f9;
-    padding: 1px 5px;
-    border-radius: 4px;
-    font-size: 0.92em;
-    color: #0f172a;
-}
-
-/* === Stufe 2 Info-Grid & Human-in-the-Loop === */
-.sckm-info-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.sckm-info-item {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+.sckm-cap-icon {
+    width: 48px;
+    height: 36px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
     border-radius: 8px;
-    padding: 7px 9px;
-    font-size: 0.8em;
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.sckm-hitl-box {
-    background: #f0fdf4;
-    border: 1px dashed #86efac;
-    border-radius: 9px;
-    padding: 9px 10px;
-    font-size: 0.78em;
-}
-.sckm-hitl-box p {
-    margin: 4px 0 7px;
-    color: #475569;
-}
-.sckm-tree-chip {
-    background: #fff;
-    border: 1px solid #cbd5e1;
-    border-radius: 999px;
-    padding: 4px 9px;
-    font-size: 0.95em;
-    cursor: pointer;
-    font-weight: 600;
-}
-.sckm-tree-chip.aktiv {
-    background: #16a34a;
-    border-color: #16a34a;
-    color: #fff;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-/* === Stufe 3 Glass-Box Score & Regeln === */
 .sckm-species-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    gap: 5px;
 }
 .sckm-species-btn {
     background: #f8fafc;
@@ -304,41 +365,28 @@
     box-shadow: 0 2px 6px rgba(26, 122, 69, 0.14);
 }
 .sckm-sp-name {
-    font-size: 0.78em;
+    font-size: 0.77em;
     font-weight: 700;
     color: #1e293b;
 }
 .sckm-sp-score {
     color: #fff;
-    font-size: 0.74em;
+    font-size: 0.73em;
     font-weight: 700;
     padding: 2px 6px;
     border-radius: 999px;
 }
 
-.sckm-glassbox-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
 .sckm-gb-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
 }
 .sckm-gb-header h5 {
-    font-size: 0.92em;
+    font-size: 0.94em;
     color: #0f172a;
     margin: 0;
-}
-.sckm-gb-header h5 small {
-    font-weight: 400;
-    color: #64748b;
 }
 .sckm-gb-group {
     font-size: 0.74em;
@@ -354,13 +402,13 @@
 }
 
 .sckm-know-why {
-    font-size: 0.78em;
+    font-size: 0.79em;
     color: #334155;
-    background: #fff;
+    background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 7px;
+    border-radius: 8px;
     padding: 7px 9px;
-    line-height: 1.4;
+    line-height: 1.42;
 }
 
 .sckm-ko-banner {
@@ -378,19 +426,9 @@
     border: 1px solid #bbf7d0;
     border-left: 3.5px solid #16a34a;
     color: #166534;
-    padding: 8px 10px;
+    padding: 7px 9px;
     border-radius: 7px;
-    font-size: 0.8em;
-    line-height: 1.4;
-}
-.sckm-warn-banner {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-left: 3.5px solid #d97706;
-    color: #92400e;
-    padding: 8px 10px;
-    border-radius: 7px;
-    font-size: 0.8em;
+    font-size: 0.79em;
     line-height: 1.4;
 }
 
@@ -400,7 +438,7 @@
     gap: 6px;
 }
 .sckm-rule-item {
-    background: #fff;
+    background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     padding: 7px 9px;
@@ -423,9 +461,31 @@
     border-radius: 3px;
 }
 .sckm-rule-exp {
-    font-size: 0.74em;
+    font-size: 0.75em;
     color: #475569;
-    line-height: 1.35;
+    line-height: 1.38;
+}
+
+.sckm-hitl-box {
+    background: #f0fdf4;
+    border: 1px dashed #86efac;
+    border-radius: 9px;
+    padding: 8px 10px;
+    font-size: 0.77em;
+}
+.sckm-tree-chip {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 0.94em;
+    cursor: pointer;
+    font-weight: 600;
+}
+.sckm-tree-chip.aktiv {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
 }
 
 .sckm-lookalike-box {
@@ -438,46 +498,21 @@
 }
 .sckm-lookalike-box p {
     margin-top: 3px;
-    line-height: 1.35;
+    line-height: 1.38;
 }
 
-/* === Stufe 4 Checkliste & Buttons === */
-.sckm-chk-box {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 0.8em;
-}
-.sckm-chk-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 7px 9px;
-    cursor: pointer;
-}
-.sckm-chk-item.erledigt {
-    background: #f0fdf4;
-    border-color: #86efac;
-}
-
-.sckm-next-btn,
 .sckm-act-primary {
-    width: 100%;
-    padding: 9px 12px;
+    padding: 9px 11px;
     background: #1a7a45;
     color: #fff;
     border: none;
     border-radius: 8px;
     font-weight: 700;
-    font-size: 0.82em;
+    font-size: 0.8em;
     cursor: pointer;
 }
-.sckm-graph-btn,
-.sckm-act-secondary {
-    padding: 9px 12px;
+.sckm-graph-btn {
+    padding: 9px 11px;
     background: #0f172a;
     color: #fff;
     border: none;
@@ -486,19 +521,47 @@
     font-size: 0.8em;
     cursor: pointer;
 }
-.sckm-action-btns {
+
+.sckm-wt-toggle {
+    background: none;
+    border: 1px dashed #cbd5e1;
+    color: #475569;
+    border-radius: 7px;
+    padding: 6px 8px;
+    font-size: 0.74em;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 2px;
+}
+.sckm-wt-details {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 0.74em;
+    color: #334155;
+}
+.sckm-wt-steps-list {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 5px;
+}
+.sckm-wt-row {
+    line-height: 1.38;
+}
+.sckm-wt-row code {
+    background: #e2e8f0;
+    padding: 1px 4px;
+    border-radius: 4px;
 }
 
-/* === Interaktives Knowledge-Graph-Dock (unten) === */
+/* === 5. Kombiniertes Lexikon- & Wissensgraph-Dock (📖 / 🕸️ unten) === */
 #knowledge-graph-dock {
     position: fixed;
     left: 12px;
     right: 82px;
     bottom: 12px;
-    background: rgba(255, 255, 255, 0.97);
+    background: rgba(255, 255, 255, 0.98);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
     border: 1.5px solid #cbd5e1;
@@ -510,7 +573,8 @@
     transform: translateY(calc(100% + 30px));
     opacity: 0;
     pointer-events: none;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.22s ease;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.22s ease;
     max-height: 78vh;
     display: flex;
     flex-direction: column;
@@ -526,25 +590,39 @@
         display: none;
     }
     #wissenstreppe-panel.offen ~ #knowledge-graph-dock {
-        left: 452px;
+        left: 442px;
     }
 }
 
 #knowledge-graph-dock-kopf {
-    padding: 8px 14px;
+    padding: 8px 12px;
     background: #f8fafc;
     border-bottom: 1px solid #e2e8f0;
     border-radius: 14px 14px 0 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
 }
-#knowledge-graph-dock-kopf h3 {
-    font-size: 0.86em;
-    color: #0f172a;
-    margin: 0;
+.sckm-dock-tabs {
+    display: flex;
+    gap: 6px;
 }
-#knowledge-graph-dock-kopf button {
+.sckm-dock-tab {
+    background: #e2e8f0;
+    border: none;
+    color: #334155;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.8em;
+    font-weight: 700;
+    cursor: pointer;
+}
+.sckm-dock-tab.aktiv {
+    background: #1a7a45;
+    color: #fff;
+}
+.sckm-dock-close {
     background: #e2e8f0;
     border: none;
     color: #1e293b;
@@ -556,7 +634,7 @@
 }
 
 #knowledge-graph-dock-inhalt {
-    padding: 8px 12px 10px;
+    padding: 8px 12px 12px;
     overflow-y: auto;
 }
 
@@ -582,6 +660,14 @@
     border: 1px solid #cbd5e1;
     padding: 2px 8px;
     border-radius: 999px;
+}
+.sckm-kg-node-explain {
+    background: #f0fdf4;
+    border-left: 3px solid #16a34a;
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 0.76em;
+    color: #1e293b;
 }
 .sckm-layer-link-btn {
     background: #eff6ff;
@@ -622,9 +708,82 @@
     width: 100%;
     min-width: 520px;
     height: auto;
-    max-height: 245px;
+    max-height: 235px;
     display: block;
     user-select: none;
+}
+
+/* === 6. Einsteiger-Lexikon Ansicht im Dock === */
+.sckm-lex-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.sckm-lex-glossary-bar {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 0.78em;
+}
+.sckm-lex-term-btn {
+    background: #fff;
+    border: 1px solid #86efac;
+    color: #14532d;
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 0.94em;
+    font-weight: 600;
+    cursor: pointer;
+}
+.sckm-lex-term-btn:hover {
+    background: #dcfce7;
+}
+.sckm-lex-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 8px;
+}
+.sckm-lex-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 9px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sckm-lex-card-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82em;
+}
+.sckm-lex-sub {
+    font-size: 0.88em;
+    color: #64748b;
+}
+.sckm-lex-graph-jump {
+    background: #0f172a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 7px;
+    font-size: 0.85em;
+    font-weight: 700;
+    cursor: pointer;
+}
+.sckm-lex-text {
+    font-size: 0.76em;
+    color: #334155;
+    line-height: 1.38;
+}
+.sckm-lex-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 0.72em;
+    color: #475569;
 }
 
 @media (max-width: 640px) {

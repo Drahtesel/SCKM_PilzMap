@@ -1,7 +1,7 @@
 // ============================================================================
 // SCKM Interaktiver Wissensgraph / Visual Ontology (www/sckm/knowledgeGraph.js)
-// Erzeugt den 4-spaltigen semantischen Wissensgraphen (Boden-pH -> Baum ->
-// Pilzart -> Zeigerpflanze) mit RDF-Tripel-Erklärung und Live-Standort-Abgleich.
+// Einsteigerfreundliche Darstellung der ökologischen Zusammenhänge:
+// 1. Waldboden (pH) <-> 2. Baum-Partner <-> 3. Pilzart <-> 4. Zeigerpflanze
 // ============================================================================
 
 (function (root) {
@@ -13,7 +13,6 @@
         throw new Error('SCKM_ONTOLOGY nicht geladen');
     };
 
-    // Baut Knoten (Nodes) und gerichtete Kanten (Edges / RDF-Tripel) auf
     function buildKnowledgeGraph(evaluationResult, focusedNodeId) {
         const ont = getOntology();
         const ctx = evaluationResult ? evaluationResult.context : null;
@@ -25,41 +24,43 @@
         const nodes = [];
         const edges = [];
 
-        // Spalte 1: Boden-Milieu (pH) (x = 95)
+        // Spalte 1: Waldboden (pH) (x = 95)
         ont.PH_CATEGORIES.forEach(function (ph, idx) {
             const isPresent = ctx ? ctx.phInfo.categoryId === ph.id : false;
             nodes.push({
                 id: 'ph:' + ph.id,
                 rawId: ph.id,
                 category: 'soil',
+                categoryLabel: 'Waldboden (pH)',
                 label: ph.label,
                 subLabel: ph.rangeText,
+                explanation: ph.einfacheErklaerung || ph.typischBw,
                 x: 95,
                 y: 48 + idx * 52,
                 isPresentAtLocation: isPresent,
-                layerHint: 'ph',
-                ontologieTyp: 'sckm:SoilMilieu'
+                layerHint: 'ph'
             });
         });
 
-        // Spalte 2: Symbiose-Baum (x = 305)
+        // Spalte 2: Baum-Partner (x = 305)
         ont.TREE_NODES.forEach(function (tree, idx) {
             const isPresent = ctx ? ctx.trees.indexOf(tree.id) !== -1 : false;
             nodes.push({
                 id: 'tree:' + tree.id,
                 rawId: tree.id,
                 category: 'tree',
+                categoryLabel: 'Baum-Partner (Mykorrhiza)',
                 label: tree.label,
                 subLabel: tree.gruppe,
+                explanation: tree.einfacheErklaerung,
                 x: 305,
                 y: 38 + idx * 33,
                 isPresentAtLocation: isPresent,
-                layerHint: 'waldrefugien',
-                ontologieTyp: 'sckm:MycorrhizaTree'
+                layerHint: 'waldrefugien'
             });
         });
 
-        // Spalte 3: Pilzart (Regelwerk) (x = 535)
+        // Spalte 3: Pilzart (x = 535)
         ont.MUSHROOM_SPECIES.forEach(function (sp, idx) {
             const rankItem =
                 evaluationResult && evaluationResult.rankings
@@ -72,36 +73,38 @@
                 id: 'mushroom:' + sp.id,
                 rawId: sp.id,
                 category: 'mushroom',
+                categoryLabel: 'Pilzart',
                 label: sp.deutscherName,
-                subLabel: score + '% Eignung',
+                subLabel: score + '% am Standort',
+                explanation: sp.knowWhySummary,
                 score: score,
                 x: 535,
                 y: 38 + idx * 38,
                 isPresentAtLocation: score >= 65,
                 isActiveSpecies: sp.id === activeSpeciesId,
-                layerHint: 'fundstellen',
-                ontologieTyp: 'sckm:FungalSpecies'
+                layerHint: 'heatmap'
             });
         });
 
-        // Spalte 4: Zeigerpflanze (Vor Ort / BWI) (x = 765)
+        // Spalte 4: Zeigerpflanze (x = 765)
         ont.INDICATOR_NODES.forEach(function (ind, idx) {
             const isPresent = ctx ? ctx.indicators.indexOf(ind.id) !== -1 : false;
             nodes.push({
                 id: 'plant:' + ind.id,
                 rawId: ind.id,
                 category: 'plant',
+                categoryLabel: 'Zeigerpflanze',
                 label: ind.label,
-                subLabel: ind.bwiField ? 'BWI ' + ind.bwiField : 'Kalk-/Auwald',
+                subLabel: ind.indiziert,
+                explanation: ind.einfacheErklaerung,
                 x: 765,
                 y: 42 + idx * 38,
                 isPresentAtLocation: isPresent,
-                layerHint: 'bwi',
-                ontologieTyp: 'sckm:IndicatorPlant'
+                layerHint: 'bwi'
             });
         });
 
-        // Gerichtete Kanten (RDF-Tripel: Subjekt --Prädikat--> Objekt)
+        // Verbindungen zwischen den Knoten
         ont.MUSHROOM_SPECIES.forEach(function (sp) {
             const mId = 'mushroom:' + sp.id;
 
@@ -110,8 +113,7 @@
                     id: 'edge:ph:' + phId + '->' + mId,
                     sourceId: 'ph:' + phId,
                     targetId: mId,
-                    predicate: 'sckm:hatBodenMilieu',
-                    predicateLabel: 'benötigt Boden-pH',
+                    predicateLabel: 'passt zu',
                     mushroomId: sp.id
                 });
             });
@@ -121,8 +123,7 @@
                     id: 'edge:tree:' + treeId + '->' + mId,
                     sourceId: 'tree:' + treeId,
                     targetId: mId,
-                    predicate: 'sckm:mykorrhizaMit',
-                    predicateLabel: 'bildet Symbiose mit',
+                    predicateLabel: 'ist Baum-Partner für',
                     mushroomId: sp.id
                 });
             });
@@ -132,14 +133,12 @@
                     id: 'edge:' + mId + '->plant:' + plantId,
                     sourceId: mId,
                     targetId: 'plant:' + plantId,
-                    predicate: 'sckm:indiziertDurch',
-                    predicateLabel: 'wird angezeigt durch',
+                    predicateLabel: 'erkennbar an',
                     mushroomId: sp.id
                 });
             });
         });
 
-        // Ermittle verbundene Tripel für den fokussierten Knoten (oder aktiven Zielpilz)
         const focusId = focusedNodeId || 'mushroom:' + activeSpeciesId;
         const activeEdges = edges.filter(function (e) {
             return e.sourceId === focusId || e.targetId === focusId;
@@ -153,7 +152,6 @@
         };
     }
 
-    // Erzeugt das interaktive SVG-Markup für das Knowledge-Graph-Dock
     function renderKnowledgeGraphSvg(graphData) {
         const nodeMap = {};
         graphData.nodes.forEach(function (n) {
@@ -197,7 +195,7 @@
                     : '#d97706'
                 : '#cbd5e1';
             const strokeWidth = isHighlighted ? (bothPresent ? '2.6' : '2.1') : '1.0';
-            const opacity = isHighlighted ? '0.95' : '0.28';
+            const opacity = isHighlighted ? '0.95' : '0.25';
 
             edgesHtml +=
                 '<path d="M ' +
@@ -230,7 +228,7 @@
             const pal = categoryColors[node.category] || categoryColors.soil;
             const isFocused = node.id === graphData.focusId;
             const isConnected = !!connectedNodeIds[node.id];
-            const opacity = isConnected ? '1' : '0.42';
+            const opacity = isConnected ? '1' : '0.38';
             const strokeW = isFocused ? '2.6' : node.isPresentAtLocation ? '2.0' : '1.2';
             const strokeCol = node.isPresentAtLocation ? '#16a34a' : pal.stroke;
 
@@ -250,7 +248,7 @@
                   '" r="3.5" fill="#cbd5e1"></circle>';
 
             nodesHtml +=
-                '<g class="sckm-kg-node" role="button" tabindex="0" aria-label="Ontologie-Knoten ' +
+                '<g class="sckm-kg-node" role="button" tabindex="0" aria-label="Knoten ' +
                 node.label +
                 '" data-node-id="' +
                 node.id +
@@ -284,7 +282,7 @@
                 (node.x - 52) +
                 '" y="' +
                 (node.y + 9) +
-                '" font-size="8.5" fill="#64748b">' +
+                '" font-size="8.2" fill="#64748b">' +
                 node.subLabel +
                 '</text>' +
                 '</g>';
@@ -292,11 +290,11 @@
 
         return (
             '<svg viewBox="0 0 865 270" class="sckm-kg-svg" role="group" aria-label="Interaktiver Pilz-Wissensgraph">' +
-            '<g font-size="10" font-weight="700" fill="#64748b" text-anchor="middle">' +
-            '<text x="95" y="16">1. BODEN-MILIEU (pH)</text>' +
-            '<text x="305" y="16">2. SYMBIOSE-BAUM</text>' +
-            '<text x="535" y="16">3. PILZART (ONTOLOGIE)</text>' +
-            '<text x="765" y="16">4. ZEIGERPFLANZE (BWI)</text>' +
+            '<g font-size="10" font-weight="700" fill="#475569" text-anchor="middle">' +
+            '<text x="95" y="16">1. WALDBODEN (pH)</text>' +
+            '<text x="305" y="16">2. BAUM-PARTNER</text>' +
+            '<text x="535" y="16">3. PILZART</text>' +
+            '<text x="765" y="16">4. ZEIGERPFLANZE</text>' +
             '</g>' +
             edgesHtml +
             nodesHtml +

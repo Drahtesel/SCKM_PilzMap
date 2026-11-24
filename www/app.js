@@ -12,6 +12,7 @@ proj4.defs("EPSG:31467", "+proj=tmerc +lat_0=0 +lon_0=9 +k=1 +x_0=3500000 +y_0=0
 
 // === 1. Karte initialisieren (Startansicht: ganz Baden-Württemberg) ===
 const map = L.map('map', { tapHold: true }).setView([48.65, 9.0], 8);
+window.map = map;
 
 // Karte bei Größenänderung neu ausrichten
 (function() {
@@ -63,6 +64,8 @@ const naturschutzLayer = L.layerGroup().addTo(map);
 const nationalparkLayer = L.layerGroup().addTo(map);
 const waldschutzLayer  = L.layerGroup().addTo(map);
 const phBodenLayer = L.layerGroup();
+window.waldLayer = waldLayer;
+window.phBodenLayer = phBodenLayer;
 // SLD erzwingt exakte Farben auf dem Server (pH×10-Werte → Klassen)
 const _phSld = '<?xml version="1.0" encoding="UTF-8"?>' +
     '<StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/sld">' +
@@ -148,6 +151,12 @@ window.setzeBasemap = function(name) {
 };
 
 window.toggleLayer = function(id, cb) {
+    if (id === 'heatmap') {
+        if (typeof window.toggleSckmHeatmap === 'function') {
+            window.toggleSckmHeatmap(cb.checked);
+        }
+        return;
+    }
     const layers = {
         fundstellen:      fundstellenLayer,
         waldrefugien:     waldLayer,

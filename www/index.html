@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="style.css?v=14" />
-    <link rel="stylesheet" href="sckm/sckm.css?v=2" />
+    <link rel="stylesheet" href="sckm/sckm.css?v=3" />
 </head>
 <body>
     <div id="header">
@@ -39,32 +39,60 @@
         </div>
     </div>
 
-    <!-- Floating Action Buttons -->
+    <!-- Schnell-Menüpunkt auf der Karte: Pilzwahrscheinlichkeit als Heatmap -->
+    <div id="sckm-heatmap-bar">
+        <button type="button" id="sckm-heatmap-toggle-btn" onclick="window.toggleSckmHeatmap()" aria-pressed="false" title="Pilzwahrscheinlichkeit als Heatmap auf der Karte anzeigen">
+            🔥 Pilz-Heatmap
+        </button>
+        <div id="sckm-heatmap-controls">
+            <label for="sckm-heatmap-select" style="font-weight:700;color:#0f172a;">Pilzart für Heatmap:</label>
+            <select id="sckm-heatmap-select" onchange="window.setzeSckmHeatmapPilz(this.value)">
+                <option value="all">🍄 Alle Einsteigerpilze (Beste Chance)</option>
+                <option value="boletus-edulis">Fichten-Steinpilz</option>
+                <option value="imleria-badia">Maronen-Röhrling</option>
+                <option value="cantharellus-cibarius">Echter Pfifferling</option>
+                <option value="sparassis-crispa">Krause Glucke</option>
+                <option value="boletus-reticulatus">Sommer-Steinpilz</option>
+                <option value="morchella-esculenta">Speisemorchel</option>
+            </select>
+            <div class="sckm-hm-legend-mini">
+                <span><i class="sckm-hm-dot" style="background:#16a34a;"></i>Hoch (&ge;75%)</span>
+                <span><i class="sckm-hm-dot" style="background:#eab308;"></i>Mittel</span>
+                <span><i class="sckm-hm-dot" style="background:#ef4444;"></i>Gering</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Buttons (Optimierte Reihenfolge) -->
     <div id="fab-container">
-        <button id="sckm-btn"         class="fab" onclick="window.toggleWissenstreppePanel()" title="Einsteiger-Wissenstreppe &amp; Knowledge Graph">🪜</button>
-        <button id="layer-btn"        class="fab" onclick="window.toggleLayerPanel()"   title="Layer">🗺️</button>
-        <button id="filter-btn"       class="fab" onclick="window.toggleFilterPanel()"  title="Filter">🔍</button>
-        <button id="aufzeichnung-btn" class="fab" onclick="window.toggleAufzeichnung()" title="Aufzeichnen">⏺️</button>
+        <button id="sckm-btn"         class="fab" onclick="window.toggleWissenstreppePanel()" title="Standort-Erklärung: Warum wächst hier welcher Pilz?">🔍</button>
+        <button id="lexikon-btn"      class="fab" onclick="window.toggleKnowledgeGraphDock()" title="Pilz-Lexikon &amp; Wissensgraph">📖</button>
+        <button id="layer-btn"        class="fab" onclick="window.toggleLayerPanel()"         title="Kartenebenen &amp; Heatmap">🗺️</button>
+        <button id="filter-btn"       class="fab" onclick="window.toggleFilterPanel()"        title="Meine Pilzfunde &amp; Routen">🧺</button>
+        <button id="aufzeichnung-btn" class="fab" onclick="window.toggleAufzeichnung()"       title="Aufzeichnen">⏺️</button>
         <button id="standort-btn"     class="fab fab-primary" onclick="window.zentriereAufStandort()" title="Position">📍</button>
     </div>
 
-    <!-- SCKM Beginner-Wissenstreppe Drawer & Knowledge Graph Dock -->
+    <!-- SCKM Vereinfachtes Standort-Erklärpanel (🔍) & Lexikon/Wissensgraph-Dock (📖) -->
     <div id="wissenstreppe-panel-backdrop" onclick="window.toggleWissenstreppePanel()"></div>
-    <div id="wissenstreppe-panel" role="dialog" aria-label="Einsteiger-Wissenstreppe">
+    <div id="wissenstreppe-panel" role="dialog" aria-label="Standort-Erklärung der Pilzwahrscheinlichkeit">
         <div id="wissenstreppe-panel-kopf">
             <div class="sckm-kopf-titel">
-                <span>🪜 Einsteiger-Wissenstreppe</span>
-                <small>Vom Rohwert über den Knowledge Graph zur Pilz-Entscheidung</small>
+                <span>🔍 Pilzwahrscheinlichkeit erklärt</span>
+                <small>Einfacher Einstieg: Standort prüfen &amp; verstehen</small>
             </div>
             <button type="button" onclick="window.toggleWissenstreppePanel()" title="Schließen">✕</button>
         </div>
         <div id="wissenstreppe-panel-inhalt"></div>
     </div>
 
-    <div id="knowledge-graph-dock" role="region" aria-label="Interaktiver Wissensgraph">
+    <div id="knowledge-graph-dock" role="region" aria-label="Pilz-Lexikon und Wissensgraph">
         <div id="knowledge-graph-dock-kopf">
-            <h3>🕸️ ONTOLOGIE &amp; WISSENSGRAPH (SCKM KNOWLEDGE LAYER)</h3>
-            <button type="button" onclick="window.toggleKnowledgeGraphDock(false)">Graph einklappen ✕</button>
+            <div class="sckm-dock-tabs">
+                <button type="button" id="sckm-dock-tab-graph" class="sckm-dock-tab aktiv" onclick="window.setzeLexikonDockTab('graph')">🕸️ Visueller Wissensgraph</button>
+                <button type="button" id="sckm-dock-tab-lexikon" class="sckm-dock-tab" onclick="window.setzeLexikonDockTab('lexikon')">📖 Einsteiger-Lexikon</button>
+            </div>
+            <button type="button" class="sckm-dock-close" onclick="window.toggleKnowledgeGraphDock(false)">Schließen ✕</button>
         </div>
         <div id="knowledge-graph-dock-inhalt"></div>
     </div>
@@ -142,6 +170,12 @@
 
             <div class="layer-gruppe">
                 <h3>Daten-Layer</h3>
+                <label class="layer-item"><input type="checkbox" id="cb-heatmap"         onchange="window.toggleLayer('heatmap',this)">               🔥 Pilzwahrscheinlichkeit (Heatmap)</label>
+                <div id="legende-heatmap" class="layer-legende">
+                    <i class="ll-dot" style="background:#16a34a;"></i>&ge; 75 % (Sehr hohe Pilz-Chance)<br>
+                    <i class="ll-dot" style="background:#eab308;"></i>45–74 % (Mittlere Chance)<br>
+                    <i class="ll-dot" style="background:#ef4444;"></i>&lt; 45 % (Geringe Chance)
+                </div>
                 <label class="layer-item"><input type="checkbox" id="cb-fundstellen"     onchange="window.toggleLayer('fundstellen',this)"     checked> 🍄 Pilzfunde</label>
                 <label class="layer-item"><input type="checkbox" id="cb-waldrefugien"    onchange="window.toggleLayer('waldrefugien',this)">           🌲 Waldrefugien (ForstBW)</label>
                 <div id="legende-waldrefugien" class="layer-legende">Wird geladen…</div>
@@ -211,11 +245,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js" defer></script>
 
-    <script src="sckm/ontology.js?v=1" defer></script>
-    <script src="sckm/inferenceEngine.js?v=1" defer></script>
-    <script src="sckm/knowledgeGraph.js?v=1" defer></script>
-    <script src="sckm/wissenstreppeUI.js?v=1" defer></script>
-    <script src="app.js?v=15" defer></script>
+    <script src="sckm/ontology.js?v=2" defer></script>
+    <script src="sckm/inferenceEngine.js?v=2" defer></script>
+    <script src="sckm/knowledgeGraph.js?v=2" defer></script>
+    <script src="sckm/heatmapLayer.js?v=2" defer></script>
+    <script src="sckm/wissenstreppeUI.js?v=2" defer></script>
+    <script src="app.js?v=16" defer></script>
     
 </body>
 </html>
