@@ -175,11 +175,58 @@
     margin-right: 3px;
 }
 
-/* Weicher Gaußscher Heatmap-Filter für die Leaflet-Pane */
+/* Weicher Gaußscher Heatmap-Filter für echte Waldpolygone (wie im 1. Prototyp) */
 .sckm-heatmap-pane svg,
-.sckm-heatmap-blob {
-    filter: blur(8px) saturate(1.35);
+.sckm-heatmap-blob,
+.sckm-heatmap-glow-path {
+    filter: blur(9px) saturate(1.35);
     pointer-events: none;
+}
+
+.sckm-hm-modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 8px;
+}
+.sckm-hm-mode-btn {
+    background: transparent;
+    border: none;
+    color: #475569;
+    font-size: 0.88em;
+    font-weight: 700;
+    padding: 4px 5px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.sckm-hm-mode-btn.aktiv {
+    background: #1a7a45;
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+}
+.sckm-hm-stats-line {
+    font-size: 0.86em;
+    color: #334155;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 4px 7px;
+    text-align: center;
+}
+.sckm-hm-jump-btn {
+    background: #0f172a;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 6px 8px;
+    font-size: 0.9em;
+    font-weight: 700;
+    cursor: pointer;
+}
+.sckm-hm-jump-btn:hover {
+    background: #1e293b;
 }
 
 /* === 3. FAB-Aktiv-Zustände === */

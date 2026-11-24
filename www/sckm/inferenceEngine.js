@@ -154,18 +154,29 @@
         const matchingTrees = species.requiredTrees.filter(function (t) {
             return context.trees.indexOf(t) !== -1;
         });
+        const isPrimaryTreeMatch =
+            context.trees.length > 0 && species.requiredTrees.indexOf(context.trees[0]) !== -1;
         let treePoints = 0;
         let treeStatus = 'failed';
         let treeExplanation = '';
 
-        if (matchingTrees.length > 0) {
+        if (matchingTrees.length > 0 && isPrimaryTreeMatch) {
             treePoints = 35;
             treeStatus = 'passed';
             treeExplanation =
-                'Symbiose-Partner vorhanden (' +
+                'Hauptbaumart passt optimal (' +
                 matchingTrees.join(', ') +
                 ' gefunden · benötigt: ' +
                 species.requiredTrees.join(' oder ') +
+                ').';
+        } else if (matchingTrees.length > 0) {
+            treePoints = 21;
+            treeStatus = 'partial';
+            treeExplanation =
+                'Symbiose-Partner als Nebenbaumart im Mischbestand vorhanden (' +
+                matchingTrees.join(', ') +
+                ' · Hauptbaumart ist ' +
+                context.trees[0] +
                 ').';
         } else {
             treePoints = 0;

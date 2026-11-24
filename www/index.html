@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="style.css?v=14" />
-    <link rel="stylesheet" href="sckm/sckm.css?v=3" />
+    <link rel="stylesheet" href="sckm/sckm.css?v=4" />
 </head>
 <body>
     <div id="header">
@@ -39,27 +39,34 @@
         </div>
     </div>
 
-    <!-- Schnell-Menüpunkt auf der Karte: Pilzwahrscheinlichkeit als Heatmap -->
+    <!-- Schnell-Menüpunkt auf der Karte: Waldkanten-getreue Pilzwahrscheinlichkeit (wie im 1. Prototyp) -->
     <div id="sckm-heatmap-bar">
-        <button type="button" id="sckm-heatmap-toggle-btn" onclick="window.toggleSckmHeatmap()" aria-pressed="false" title="Pilzwahrscheinlichkeit als Heatmap auf der Karte anzeigen">
-            🔥 Pilz-Heatmap
+        <button type="button" id="sckm-heatmap-toggle-btn" onclick="window.toggleSckmHeatmap()" aria-pressed="false" title="Pilzwahrscheinlichkeit für echte Waldparzellen anzeigen">
+            🔥 Pilz-Karte (Wälder)
         </button>
         <div id="sckm-heatmap-controls">
-            <label for="sckm-heatmap-select" style="font-weight:700;color:#0f172a;">Pilzart für Heatmap:</label>
+            <label for="sckm-heatmap-select" style="font-weight:700;color:#0f172a;">Ziel-Pilzart auswählen:</label>
             <select id="sckm-heatmap-select" onchange="window.setzeSckmHeatmapPilz(this.value)">
-                <option value="all">🍄 Alle Einsteigerpilze (Beste Chance)</option>
-                <option value="boletus-edulis">Fichten-Steinpilz</option>
-                <option value="imleria-badia">Maronen-Röhrling</option>
-                <option value="cantharellus-cibarius">Echter Pfifferling</option>
-                <option value="sparassis-crispa">Krause Glucke</option>
-                <option value="boletus-reticulatus">Sommer-Steinpilz</option>
-                <option value="morchella-esculenta">Speisemorchel</option>
+                <option value="boletus-edulis">🍄 Fichten-Steinpilz (Sauer/Fichte)</option>
+                <option value="imleria-badia">🍄 Maronen-Röhrling (Sauer/Nadelwald)</option>
+                <option value="cantharellus-cibarius">🍄 Echter Pfifferling (Sauer/Moos)</option>
+                <option value="sparassis-crispa">🍄 Krause Glucke (Nur bei Kiefer!)</option>
+                <option value="boletus-reticulatus">🍄 Sommer-Steinpilz (Mild/Laubwald)</option>
+                <option value="morchella-esculenta">🍄 Speisemorchel (Kalk/Auwald)</option>
             </select>
-            <div class="sckm-hm-legend-mini">
-                <span><i class="sckm-hm-dot" style="background:#16a34a;"></i>Hoch (&ge;75%)</span>
-                <span><i class="sckm-hm-dot" style="background:#eab308;"></i>Mittel</span>
-                <span><i class="sckm-hm-dot" style="background:#ef4444;"></i>Gering</span>
+            <div class="sckm-hm-modes" role="group" aria-label="Darstellungsmodus">
+                <button type="button" id="sckm-hm-mode-hybrid" class="sckm-hm-mode-btn aktiv" onclick="window.setzeSckmHeatmapModus('hybrid')">Hybrid</button>
+                <button type="button" id="sckm-hm-mode-parzellen" class="sckm-hm-mode-btn" onclick="window.setzeSckmHeatmapModus('parzellen')">Waldparzellen</button>
+                <button type="button" id="sckm-hm-mode-heatmap" class="sckm-hm-mode-btn" onclick="window.setzeSckmHeatmapModus('heatmap')">Heatmap</button>
             </div>
+            <div id="sckm-hm-stats" class="sckm-hm-stats-line">75 Freiburger Detail-Wälder + ForstBW geladen</div>
+            <div class="sckm-hm-legend-mini">
+                <span><i class="sckm-hm-dot" style="background:#16a34a;"></i>&ge;75%</span>
+                <span><i class="sckm-hm-dot" style="background:#eab308;"></i>50–74%</span>
+                <span><i class="sckm-hm-dot" style="background:#f97316;"></i>25–49%</span>
+                <span><i class="sckm-hm-dot" style="background:#dc2626;"></i>&lt;25%</span>
+            </div>
+            <button type="button" class="sckm-hm-jump-btn" onclick="window.zoomSckmFreiburg()">📍 Zur Detailregion Freiburg (75 Wälder)</button>
         </div>
     </div>
 
@@ -245,12 +252,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js" defer></script>
 
-    <script src="sckm/ontology.js?v=2" defer></script>
-    <script src="sckm/inferenceEngine.js?v=2" defer></script>
-    <script src="sckm/knowledgeGraph.js?v=2" defer></script>
-    <script src="sckm/heatmapLayer.js?v=2" defer></script>
-    <script src="sckm/wissenstreppeUI.js?v=2" defer></script>
-    <script src="app.js?v=16" defer></script>
+    <script src="sckm/ontology.js?v=4" defer></script>
+    <script src="sckm/inferenceEngine.js?v=4" defer></script>
+    <script src="sckm/knowledgeGraph.js?v=4" defer></script>
+    <script src="sckm/heatmapLayer.js?v=4" defer></script>
+    <script src="sckm/wissenstreppeUI.js?v=4" defer></script>
+    <script src="app.js?v=18" defer></script>
     
 </body>
 </html>

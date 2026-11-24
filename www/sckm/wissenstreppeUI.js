@@ -191,10 +191,13 @@
         if (btn) btn.classList.toggle('aktiv', state.panelOffen);
     }
 
-    root.waehleSckmPilzart = function (speciesId) {
+    root.waehleSckmPilzart = function (speciesId, skipHeatmapSync) {
         state.selectedSpeciesId = speciesId;
         state.focusedGraphNodeId = 'mushroom:' + speciesId;
         saveLocalState();
+        if (!skipHeatmapSync && typeof root.setzeSckmHeatmapPilz === 'function') {
+            root.setzeSckmHeatmapPilz(speciesId, true);
+        }
         renderWissenstreppePanel();
         renderLexikonDock();
     };
