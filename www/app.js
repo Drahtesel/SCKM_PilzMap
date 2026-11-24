@@ -506,8 +506,8 @@ function holeLayerTrefferAnPunkt(lat, lng) {
     return treffer;
 }
 
-function holeBwiAnPunkt(lat, lng) {
-    if (!map.hasLayer(phBodenLayer)) return null;
+function holeBwiAnPunkt(lat, lng, erzwingeHintergrund) {
+    if (!erzwingeHintergrund && !map.hasLayer(phBodenLayer)) return null;
     const pt = turf.point([lng, lat]);
     let gefunden = null;
     phBodenLayer.eachLayer(function(sub) {
@@ -515,6 +515,8 @@ function holeBwiAnPunkt(lat, lng) {
         function check(fl) {
             if (gefunden || !fl.toGeoJSON) return;
             try {
+                const b = fl.getBounds ? fl.getBounds() : null;
+                if (b && !b.contains([lat, lng])) return;
                 const feat = fl.toGeoJSON();
                 if (feat.geometry && turf.booleanPointInPolygon(pt, feat)) {
                     const p = feat.properties || {};
@@ -531,8 +533,30 @@ function holeBwiAnPunkt(lat, lng) {
     return gefunden;
 }
 
-function holeIsricPhAnPunkt(lat, lng) {
-    if (!map.hasLayer(bodenPhWms)) return Promise.resolve(null);
+function holeWaldrefugiumAnPunkt(lat, lng) {
+    const pt = turf.point([lng, lat]);
+    const arten = new Set();
+    waldLayer.eachLayer(function(sub) {
+        function check(fl) {
+            if (!fl.toGeoJSON) return;
+            try {
+                const b = fl.getBounds ? fl.getBounds() : null;
+                if (b && !b.contains([lat, lng])) return;
+                const feat = fl.toGeoJSON();
+                if (feat.geometry && turf.booleanPointInPolygon(pt, feat)) {
+                    const p = feat.properties || {};
+                    const art = _waldBaumart(p.LWET_TEXT);
+                    if (art) arten.add(art);
+                }
+            } catch(_) {}
+        }
+        if (typeof sub.eachLayer === 'function') sub.eachLayer(check); else check(sub);
+    });
+    return Array.from(arten);
+}
+
+function holeIsricPhAnPunkt(lat, lng, erzwingeHintergrund) {
+    if (!erzwingeHintergrund && !map.hasLayer(bodenPhWms)) return Promise.resolve(null);
     const d = 0.005;
     const bbox = `${(lat - d).toFixed(6)},${(lng - d).toFixed(6)},${(lat + d).toFixed(6)},${(lng + d).toFixed(6)}`;
     const url = `https://maps.isric.org/mapserv?map=/map/phh2o.map&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&LAYERS=phh2o_0-5cm_mean&QUERY_LAYERS=phh2o_0-5cm_mean&STYLES=default&CRS=EPSG:4326&BBOX=${bbox}&WIDTH=101&HEIGHT=101&I=50&J=50&INFO_FORMAT=application/geo%2Bjson`;
@@ -557,7 +581,9 @@ function oeffneKlickPopup(latlng) {
     const lngR = lng.toFixed(6);
 
     const layerTreffer = holeLayerTrefferAnPunkt(lat, lng);
-    const bwiTreffer   = holeBwiAnPunkt(lat, lng);
+    const bwiTreffer   = holeBwiAnPunkt(lat, lng, false);
+    const bwiHintergrund = bwiTreffer || holeBwiAnPunkt(lat, lng, true);
+    const waldArten    = holeWaldrefugiumAnPunkt(lat, lng);
     const phAktiv      = map.hasLayer(bodenPhWms);
 
     let layerBlock = '';
@@ -682,8 +708,9 @@ function oeffneKlickPopup(latlng) {
             ${routingButtonsHtml}
         </div>`;
 
-    const bauePopupHtml = (ortsName, wetterHtml, phBlockHtml) => `
-        <div style="font-family:'Segoe UI',Tahoma,sans-serif; min-width:240px; padding:4px;">
+    const bauePopupHtml = (ortsName, wetterHtml, phBlockHtml, sckmBlockHtml) => `
+        <div style="font-family:'Segoe UI',Tahoma,sans-serif; min-width:248px; padding:4px;">
+            ${sckmBlockHtml || ''}
             ${layerBlock}
             ${bwiBlock}
             ${phBlockHtml}
@@ -696,7 +723,7 @@ function oeffneKlickPopup(latlng) {
 
     const ladePopup = L.popup()
         .setLatLng(latlng)
-        .setContent(bauePopupHtml('Lade Ort…', '<div style="font-size:0.82em; color:#888;">⏳ Wetterdaten werden geladen…</div>', bauePhBlock(null, true)))
+        .setContent(bauePopupHtml('Lade Ort…', '<div style="font-size:0.82em; color:#888;">⏳ Wetterdaten werden geladen…</div>', bauePhBlock(null, true), ''))
         .openOn(map);
 
     const wetterUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latR}&longitude=${lngR}&current_weather=true&daily=precipitation_sum&past_days=7&forecast_days=1&timezone=Europe/Berlin`;
@@ -705,7 +732,7 @@ function oeffneKlickPopup(latlng) {
     Promise.all([
         fetch(ortsUrl).then(r => r.json()).catch(() => ({})),
         fetch(wetterUrl).then(r => r.json()).catch(() => ({})),
-        holeIsricPhAnPunkt(lat, lng)
+        holeIsricPhAnPunkt(lat, lng, true)
     ]).then(([ortsDaten, wetterDaten, phWert]) => {
         let ortsName = "Natur pur";
         if (ortsDaten && ortsDaten.address) {
@@ -714,11 +741,13 @@ function oeffneKlickPopup(latlng) {
         }
 
         let wetterBlock = '';
+        let regenSumme = 18.0;
+        let temp = null;
         if (wetterDaten && wetterDaten.current_weather && wetterDaten.daily) {
-            const temp  = wetterDaten.current_weather.temperature;
+            temp  = wetterDaten.current_weather.temperature;
             const wind  = wetterDaten.current_weather.windspeed;
             const regen = wetterDaten.daily.precipitation_sum;
-            let regenSumme = 0;
+            regenSumme = 0;
             for (let i = 0; i < 7; i++) regenSumme += regen[i] || 0;
             regenSumme = Math.round(regenSumme * 10) / 10;
             wetterBlock = `
@@ -726,11 +755,36 @@ function oeffneKlickPopup(latlng) {
                 <div style="font-size:0.82em; background:#eef5fc; color:#1e6091; padding:3px 10px; border-radius:20px; display:inline-block; font-weight:bold;">🌧️ 7-Tage-Regen: ${regenSumme} mm</div>`;
         }
 
+        const sckmStandort = {
+            ortsName: ortsName,
+            lat: lat,
+            lng: lng,
+            phWert: phWert,
+            bwiScore: bwiHintergrund ? bwiHintergrund.score : null,
+            bwiSbv: bwiHintergrund ? bwiHintergrund.sbv : [0, 0, 0, 0],
+            baumarten: waldArten,
+            baumQuelle: waldArten.length > 0 ? 'ForstBW Waldrefugien-Layer' : null,
+            regen7TageMm: regenSumme,
+            temperaturC: temp,
+            schutzgebiete: layerTreffer
+        };
+
+        if (typeof window.aktualisiereSckmStandort === 'function') {
+            window.aktualisiereSckmStandort(sckmStandort);
+        }
+        const sckmBlockHtml = typeof window.baueSckmPopupBlock === 'function'
+            ? window.baueSckmPopupBlock(sckmStandort)
+            : '';
+
         if (map.hasLayer(ladePopup)) {
-            ladePopup.setContent(bauePopupHtml(ortsName, wetterBlock, bauePhBlock(phWert, false)));
+            ladePopup.setContent(bauePopupHtml(ortsName, wetterBlock, bauePhBlock(phWert, false), sckmBlockHtml));
         }
     });
 }
+
+window.sckmSpringeZuKoordinate = function(lat, lng) {
+    map.setView([lat, lng], 13);
+};
 
 map.on('click', function(e) { oeffneKlickPopup(e.latlng); });
 

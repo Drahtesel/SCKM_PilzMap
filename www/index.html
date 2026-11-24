@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="style.css?v=14" />
+    <link rel="stylesheet" href="sckm/sckm.css?v=2" />
 </head>
 <body>
     <div id="header">
@@ -40,10 +41,32 @@
 
     <!-- Floating Action Buttons -->
     <div id="fab-container">
+        <button id="sckm-btn"         class="fab" onclick="window.toggleWissenstreppePanel()" title="Einsteiger-Wissenstreppe &amp; Knowledge Graph">🪜</button>
         <button id="layer-btn"        class="fab" onclick="window.toggleLayerPanel()"   title="Layer">🗺️</button>
         <button id="filter-btn"       class="fab" onclick="window.toggleFilterPanel()"  title="Filter">🔍</button>
         <button id="aufzeichnung-btn" class="fab" onclick="window.toggleAufzeichnung()" title="Aufzeichnen">⏺️</button>
         <button id="standort-btn"     class="fab fab-primary" onclick="window.zentriereAufStandort()" title="Position">📍</button>
+    </div>
+
+    <!-- SCKM Beginner-Wissenstreppe Drawer & Knowledge Graph Dock -->
+    <div id="wissenstreppe-panel-backdrop" onclick="window.toggleWissenstreppePanel()"></div>
+    <div id="wissenstreppe-panel" role="dialog" aria-label="Einsteiger-Wissenstreppe">
+        <div id="wissenstreppe-panel-kopf">
+            <div class="sckm-kopf-titel">
+                <span>🪜 Einsteiger-Wissenstreppe</span>
+                <small>Vom Rohwert über den Knowledge Graph zur Pilz-Entscheidung</small>
+            </div>
+            <button type="button" onclick="window.toggleWissenstreppePanel()" title="Schließen">✕</button>
+        </div>
+        <div id="wissenstreppe-panel-inhalt"></div>
+    </div>
+
+    <div id="knowledge-graph-dock" role="region" aria-label="Interaktiver Wissensgraph">
+        <div id="knowledge-graph-dock-kopf">
+            <h3>🕸️ ONTOLOGIE &amp; WISSENSGRAPH (SCKM KNOWLEDGE LAYER)</h3>
+            <button type="button" onclick="window.toggleKnowledgeGraphDock(false)">Graph einklappen ✕</button>
+        </div>
+        <div id="knowledge-graph-dock-inhalt"></div>
     </div>
 
     <div id="routen-bar">
@@ -187,8 +210,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js" defer></script>
-    
-    <script src="app.js?v=14" defer></script>
+
+    <script src="sckm/ontology.js?v=1" defer></script>
+    <script src="sckm/inferenceEngine.js?v=1" defer></script>
+    <script src="sckm/knowledgeGraph.js?v=1" defer></script>
+    <script src="sckm/wissenstreppeUI.js?v=1" defer></script>
+    <script src="app.js?v=15" defer></script>
     
 </body>
 </html>
