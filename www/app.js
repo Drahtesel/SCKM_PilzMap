@@ -151,12 +151,6 @@ window.setzeBasemap = function(name) {
 };
 
 window.toggleLayer = function(id, cb) {
-    if (id === 'heatmap') {
-        if (typeof window.toggleSckmHeatmap === 'function') {
-            window.toggleSckmHeatmap(cb.checked);
-        }
-        return;
-    }
     const layers = {
         fundstellen:      fundstellenLayer,
         waldrefugien:     waldLayer,

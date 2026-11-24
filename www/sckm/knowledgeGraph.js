@@ -82,7 +82,7 @@
                 y: 38 + idx * 38,
                 isPresentAtLocation: score >= 65,
                 isActiveSpecies: sp.id === activeSpeciesId,
-                layerHint: 'heatmap'
+                layerHint: 'fundstellen'
             });
         });
 

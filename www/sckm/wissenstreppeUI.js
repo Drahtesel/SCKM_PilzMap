@@ -191,13 +191,10 @@
         if (btn) btn.classList.toggle('aktiv', state.panelOffen);
     }
 
-    root.waehleSckmPilzart = function (speciesId, skipHeatmapSync) {
+    root.waehleSckmPilzart = function (speciesId) {
         state.selectedSpeciesId = speciesId;
         state.focusedGraphNodeId = 'mushroom:' + speciesId;
         saveLocalState();
-        if (!skipHeatmapSync && typeof root.setzeSckmHeatmapPilz === 'function') {
-            root.setzeSckmHeatmapPilz(speciesId, true);
-        }
         renderWissenstreppePanel();
         renderLexikonDock();
     };
@@ -551,10 +548,6 @@
     };
 
     root.aktiviereKartenLayerAusGraph = function (layerId) {
-        if (layerId === 'heatmap' && typeof root.toggleSckmHeatmap === 'function') {
-            root.toggleSckmHeatmap(true);
-            return;
-        }
         const cbMap = {
             ph: 'cb-ph',
             bwi: 'cb-bwi',
@@ -627,10 +620,10 @@
                 .join('');
 
             const layerBtnLabels = {
-                heatmap: '🔥 Pilz-Heatmap auf Karte einschalten',
                 ph: '🧪 Boden-pH-Karte einblenden',
                 bwi: '🌿 Zeigerpflanzen-Karte einblenden',
-                waldrefugien: '🌲 Baumarten-Karte (ForstBW) einblenden'
+                waldrefugien: '🌲 Baumarten-Karte (ForstBW) einblenden',
+                fundstellen: '🍄 Pilzfunde-Layer einblenden'
             };
 
             const layerBtnHtml =
