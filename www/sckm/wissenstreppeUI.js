@@ -1,6 +1,7 @@
 // ============================================================================
-// SCKM UI-Controller: Vereinfachte Standort-Erklärung (🔍), Fachbegriff-Popover,
-// Pilz-Heatmap-Leiste (🔥) & Kombiniertes Lexikon / Knowledge-Graph-Dock (📖)
+// SCKM UI-Controller: Vereinfachte Standort-Erklärung (🔍),
+// Graph -> Karte Regionen-Hervorhebung ("Regionen leuchten auf") &
+// Schematisch illustriertes Einsteiger-Lexikon (📖) mit Direkt-Verknüpfung
 // (www/sckm/wissenstreppeUI.js)
 // ============================================================================
 
@@ -13,8 +14,12 @@
         panelOffen: false,
         dockOffen: false,
         dockTab: 'graph', // 'graph' | 'lexikon'
+        lexikonFilter: 'all', // 'all' | 'mushroom' | 'tree' | 'plant' | 'term'
+        highlightedLexikonId: null, // z.B. 'term:mykorrhiza', 'tree:Fichte', 'plant:Heidelbeere', 'mushroom:boletus-edulis'
         selectedSpeciesId: 'boletus-edulis',
         focusedGraphNodeId: 'mushroom:boletus-edulis',
+        activeMapHighlightNodeId: null,
+        activeMapHighlightSummary: null,
         currentStandort: null,
         userTrees: [],
         userIndicators: [],
@@ -57,40 +62,75 @@
     }
 
     // ========================================================================
-    // 1. KLICKBARES FACHBEGRIFF-POPOVER (Progressive Disclosure)
+    // 1. VEREINHEITLICHTE LEXIKON-VERKNÜPFUNG (Klick auf .sckm-term öffnet Lexikon)
     // ========================================================================
-    root.zeigeSckmBegriff = function (termId) {
-        const ont = root.SCKM_ONTOLOGY;
-        if (!ont || !ont.GLOSSARY_TERMS || !ont.GLOSSARY_TERMS[termId]) return;
-        const term = ont.GLOSSARY_TERMS[termId];
-
-        let pop = document.getElementById('sckm-term-popover');
-        if (!pop) {
-            pop = document.createElement('div');
-            pop.id = 'sckm-term-popover';
-            pop.setAttribute('role', 'dialog');
-            pop.setAttribute('aria-label', 'Fachbegriff-Erklärung');
-            document.body.appendChild(pop);
+    function normalizeLexikonEntryId(rawId) {
+        if (!rawId) return 'term:mykorrhiza';
+        const str = String(rawId);
+        if (
+            str.indexOf('term:') === 0 ||
+            str.indexOf('tree:') === 0 ||
+            str.indexOf('plant:') === 0 ||
+            str.indexOf('mushroom:') === 0
+        ) {
+            return str;
         }
+        const ont = root.SCKM_ONTOLOGY;
+        if (ont) {
+            if (ont.GLOSSARY_TERMS && ont.GLOSSARY_TERMS[str]) return 'term:' + str;
+            if (
+                ont.TREE_NODES &&
+                ont.TREE_NODES.some(function (t) {
+                    return t.id === str;
+                })
+            ) {
+                return 'tree:' + str;
+            }
+            if (
+                ont.INDICATOR_NODES &&
+                ont.INDICATOR_NODES.some(function (p) {
+                    return p.id === str;
+                })
+            ) {
+                return 'plant:' + str;
+            }
+            if (
+                ont.MUSHROOM_SPECIES &&
+                ont.MUSHROOM_SPECIES.some(function (m) {
+                    return m.id === str;
+                })
+            ) {
+                return 'mushroom:' + str;
+            }
+        }
+        return 'term:' + str;
+    }
 
-        pop.innerHTML =
-            '<div class="sckm-pop-card">' +
-            '<div class="sckm-pop-head">' +
-            '<div><span class="sckm-pop-cat">' +
-            term.category +
-            '</span><h4>💡 ' +
-            term.title +
-            '</h4></div>' +
-            '<button type="button" onclick="window.schliesseSckmBegriff()" title="Schließen">✕</button>' +
-            '</div>' +
-            '<p class="sckm-pop-def">' +
-            term.shortDef +
-            '</p>' +
-            '<div class="sckm-pop-tip">🌲 <b>' +
-            term.forestTip +
-            '</b></div>' +
-            '</div>';
-        pop.classList.add('offen');
+    root.oeffneLexikonEintrag = function (entryId) {
+        const normId = normalizeLexikonEntryId(entryId);
+        const catPrefix = normId.split(':')[0]; // 'term' | 'tree' | 'plant' | 'mushroom'
+
+        state.dockOffen = true;
+        state.dockTab = 'lexikon';
+        // Wenn aktueller Filter nicht passt, auf 'all' schalten, damit die Karte garantiert sichtbar ist
+        if (state.lexikonFilter !== 'all' && state.lexikonFilter !== catPrefix) {
+            state.lexikonFilter = 'all';
+        }
+        state.highlightedLexikonId = normId;
+        syncDockVisibility();
+        renderLexikonDock();
+
+        setTimeout(function () {
+            const cardEl = document.getElementById('sckm-lex-' + normId.replace(':', '-'));
+            if (cardEl && typeof cardEl.scrollIntoView === 'function') {
+                cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 40);
+    };
+
+    // Rückwärtskompatibler Alias: öffnet jetzt ebenfalls direkt das integrierte Einsteiger-Lexikon
+    root.zeigeSckmBegriff = function (termId) {
+        root.oeffneLexikonEintrag('term:' + termId);
     };
 
     root.schliesseSckmBegriff = function () {
@@ -98,15 +138,290 @@
         if (pop) pop.classList.remove('offen');
     };
 
+    root.setzeLexikonFilter = function (filterName) {
+        state.lexikonFilter = filterName || 'all';
+        renderLexikonDock();
+    };
+
     // ========================================================================
-    // 2. KOMPAKTE VORSCHAU IM KARTEN-KLICK-POPUP (Ohne Redundanz!)
+    // 2. INTERAKTION WISSENSGRAPH -> KARTE ("Regionen leuchten auf")
+    // ========================================================================
+    function matchBwiCellForPh(props, phCatId) {
+        const score =
+            (props.sbv01 || 0) + (props.sbv02 || 0) + (props.sbv03 || 0) + (props.sbv04 || 0);
+        if (phCatId === 'stark_sauer') return score >= 7;
+        if (phCatId === 'maessig_sauer') return score >= 5 && score <= 6;
+        if (phCatId === 'neutral') return score >= 3 && score <= 4;
+        if (phCatId === 'kalkhaltig') return score <= 2;
+        return false;
+    }
+
+    function matchBwiCellForPlant(props, plantId) {
+        const score =
+            (props.sbv01 || 0) + (props.sbv02 || 0) + (props.sbv03 || 0) + (props.sbv04 || 0);
+        if (plantId === 'Drahtschmiele') return (props.sbv01 || 0) >= 1;
+        if (plantId === 'Heidelbeere') return (props.sbv02 || 0) >= 2;
+        if (plantId === 'Preiselbeere') return (props.sbv03 || 0) >= 1;
+        if (plantId === 'Heidekraut') return (props.sbv04 || 0) >= 2;
+        if (plantId === 'Waldmeister') return score <= 2 && (props.sbv12 || 0) >= 2;
+        if (plantId === 'Baerlauch') {
+            return score <= 1 && (props.sbv12 || 0) >= 2 && (props.sbv13 || 0) >= 1;
+        }
+        return false;
+    }
+
+    function matchBwiCellForTree(props, treeId) {
+        const score =
+            (props.sbv01 || 0) + (props.sbv02 || 0) + (props.sbv03 || 0) + (props.sbv04 || 0);
+        if (treeId === 'Fichte') return score >= 6 && (props.sbv02 || 0) >= 2;
+        if (treeId === 'Tanne') return score >= 5 && score <= 8 && (props.sbv02 || 0) >= 1;
+        if (treeId === 'Kiefer') return (props.sbv03 || 0) >= 1 && (props.sbv04 || 0) >= 1;
+        if (treeId === 'Buche') return score >= 2 && score <= 5 && (props.sbv12 || 0) >= 2;
+        if (treeId === 'Eiche') return score >= 2 && score <= 4 && (props.sbv13 || 0) >= 1;
+        if (treeId === 'Birke') return (props.sbv04 || 0) >= 2 && (props.sbv01 || 0) >= 1;
+        if (treeId === 'Esche') return score <= 2 && (props.sbv13 || 0) >= 2;
+        return false;
+    }
+
+    function matchBwiCellForMushroom(props, species) {
+        if (!species) return false;
+        const phOk = (species.requiredPhCategories || []).some(function (catId) {
+            return matchBwiCellForPh(props, catId);
+        });
+        if (!phOk) return false;
+        const plantOk = (species.indicatorPlants || []).some(function (pId) {
+            return matchBwiCellForPlant(props, pId);
+        });
+        const treeOk = (species.requiredTrees || []).some(function (tId) {
+            return matchBwiCellForTree(props, tId);
+        });
+        return plantOk || treeOk;
+    }
+
+    function defaultBwiStyle(feature) {
+        const p = (feature && feature.properties) || {};
+        const score = (p.sbv01 || 0) + (p.sbv02 || 0) + (p.sbv03 || 0) + (p.sbv04 || 0);
+        let farbe;
+        if (score >= 8) farbe = '#d7191c';
+        else if (score >= 6) farbe = '#fdae61';
+        else if (score >= 4) farbe = '#ffffbf';
+        else if (score >= 2) farbe = '#a6d96a';
+        else farbe = '#1a9641';
+        return { fillColor: farbe, color: '#555', weight: 0.4, fillOpacity: 0.65 };
+    }
+
+    function defaultWaldStyle(feature) {
+        const p = (feature && feature.properties) || {};
+        const baumFn = root._waldBaumart || function () { return 'Andere'; };
+        const farbeFn = root.getBaumartFarbe || function () { return '#2d6b1a'; };
+        const art = baumFn(p.LWET_TEXT);
+        const farbe = farbeFn(art);
+        return { color: farbe, fillColor: farbe, weight: 1.2, fillOpacity: 0.45 };
+    }
+
+    root.hebeGraphKnotenAufKarteHervor = function (nodeId) {
+        const ont = root.SCKM_ONTOLOGY;
+        if (!ont || !nodeId || !root.map) return null;
+
+        const parts = String(nodeId).split(':');
+        const type = parts[0];
+        const rawId = parts[1];
+
+        let bwiMatches = 0;
+        let waldMatches = 0;
+        let highlightColor = '#16a34a';
+        let labelText = rawId;
+
+        if (type === 'ph') {
+            const phNode = ont.PH_CATEGORIES.find(function (c) {
+                return c.id === rawId;
+            });
+            highlightColor = (phNode && phNode.color) || '#e04040';
+            labelText = phNode ? phNode.label : rawId;
+        } else if (type === 'plant') {
+            const plNode = ont.INDICATOR_NODES.find(function (p) {
+                return p.id === rawId;
+            });
+            const plantColors = {
+                Heidelbeere: '#1d4ed8',
+                Preiselbeere: '#dc2626',
+                Drahtschmiele: '#16a34a',
+                Heidekraut: '#c026d3',
+                Waldmeister: '#15803d',
+                Baerlauch: '#0d9488'
+            };
+            highlightColor = plantColors[rawId] || '#16a34a';
+            labelText = plNode ? plNode.label : rawId;
+        } else if (type === 'tree') {
+            const trNode = ont.TREE_NODES.find(function (t) {
+                return t.id === rawId;
+            });
+            highlightColor = (root.getBaumartFarbe && root.getBaumartFarbe(rawId)) || '#15803d';
+            labelText = trNode ? trNode.label : rawId;
+        } else if (type === 'mushroom') {
+            const spNode = ont.MUSHROOM_SPECIES.find(function (m) {
+                return m.id === rawId;
+            });
+            highlightColor = '#16a34a';
+            labelText = spNode ? spNode.deutscherName : rawId;
+        }
+
+        const spObj =
+            type === 'mushroom'
+                ? ont.MUSHROOM_SPECIES.find(function (m) {
+                      return m.id === rawId;
+                  })
+                : null;
+
+        // 1. BWI-2002 Rasterzellen (4.563 Zellen in ganz Baden-Württemberg) filtern & aufleuchten lassen
+        if (root.phBodenLayer) {
+            if (!root.map.hasLayer(root.phBodenLayer)) {
+                root.map.addLayer(root.phBodenLayer);
+            }
+            const cbBwi = document.getElementById('cb-bwi');
+            if (cbBwi) cbBwi.checked = true;
+
+            root.phBodenLayer.eachLayer(function (geoJsonGroup) {
+                if (typeof geoJsonGroup.eachLayer !== 'function') return;
+                geoJsonGroup.eachLayer(function (cellLayer) {
+                    const props = (cellLayer.feature && cellLayer.feature.properties) || {};
+                    let isMatch = false;
+                    if (type === 'ph') isMatch = matchBwiCellForPh(props, rawId);
+                    else if (type === 'plant') isMatch = matchBwiCellForPlant(props, rawId);
+                    else if (type === 'tree') isMatch = matchBwiCellForTree(props, rawId);
+                    else if (type === 'mushroom') isMatch = matchBwiCellForMushroom(props, spObj);
+
+                    if (isMatch) {
+                        bwiMatches++;
+                        cellLayer.setStyle({
+                            fillColor: highlightColor,
+                            color: '#ffffff',
+                            weight: 0.9,
+                            fillOpacity: type === 'tree' ? 0.62 : 0.78
+                        });
+                        if (typeof cellLayer.bringToFront === 'function') {
+                            cellLayer.bringToFront();
+                        }
+                    } else {
+                        cellLayer.setStyle({
+                            fillColor: '#94a3b8',
+                            color: 'transparent',
+                            weight: 0,
+                            fillOpacity: 0.04
+                        });
+                    }
+                });
+            });
+        }
+
+        // 2. ForstBW Waldrefugien-Polygone (4.905 Waldflächen) bei Baum- oder Pilzknoten hervorheben
+        if (root.waldLayer) {
+            if (type === 'tree' || type === 'mushroom') {
+                if (!root.map.hasLayer(root.waldLayer)) {
+                    root.map.addLayer(root.waldLayer);
+                }
+                const cbWald = document.getElementById('cb-waldrefugien');
+                if (cbWald) cbWald.checked = true;
+
+                const baumFn =
+                    root._waldBaumart ||
+                    function (txt) {
+                        return txt || '';
+                    };
+                const targetTrees =
+                    type === 'tree'
+                        ? [rawId]
+                        : spObj && spObj.requiredTrees
+                        ? spObj.requiredTrees
+                        : [];
+
+                root.waldLayer.eachLayer(function (geoJsonGroup) {
+                    if (typeof geoJsonGroup.eachLayer !== 'function') return;
+                    geoJsonGroup.eachLayer(function (polyLayer) {
+                        const props = (polyLayer.feature && polyLayer.feature.properties) || {};
+                        const art = baumFn(props.LWET_TEXT);
+                        const lwetLower = String(props.LWET_TEXT || '').toLowerCase();
+                        const isTreeMatch = targetTrees.some(function (tId) {
+                            return art === tId || lwetLower.indexOf(tId.toLowerCase()) !== -1;
+                        });
+                        if (isTreeMatch) {
+                            waldMatches++;
+                            polyLayer.setStyle({
+                                fillColor: '#15803d',
+                                color: '#facc15',
+                                weight: 2.4,
+                                fillOpacity: 0.88
+                            });
+                            if (typeof polyLayer.bringToFront === 'function') {
+                                polyLayer.bringToFront();
+                            }
+                        } else {
+                            polyLayer.setStyle({
+                                fillColor: '#94a3b8',
+                                color: 'transparent',
+                                weight: 0,
+                                fillOpacity: 0.03
+                            });
+                        }
+                    });
+                });
+            }
+        }
+
+        state.activeMapHighlightNodeId = nodeId;
+        state.activeMapHighlightSummary = {
+            nodeId: nodeId,
+            label: labelText,
+            color: highlightColor,
+            bwiMatches: bwiMatches,
+            waldMatches: waldMatches
+        };
+        return state.activeMapHighlightSummary;
+    };
+
+    root.setzeKartenHervorhebungZurueck = function () {
+        state.activeMapHighlightNodeId = null;
+        state.activeMapHighlightSummary = null;
+
+        if (root.phBodenLayer) {
+            root.phBodenLayer.eachLayer(function (geoJsonGroup) {
+                if (typeof geoJsonGroup.eachLayer !== 'function') return;
+                geoJsonGroup.eachLayer(function (cellLayer) {
+                    cellLayer.setStyle(defaultBwiStyle(cellLayer.feature));
+                });
+            });
+            if (root.map && root.map.hasLayer(root.phBodenLayer)) {
+                root.map.removeLayer(root.phBodenLayer);
+            }
+            const cbBwi = document.getElementById('cb-bwi');
+            if (cbBwi) cbBwi.checked = false;
+        }
+
+        if (root.waldLayer) {
+            root.waldLayer.eachLayer(function (geoJsonGroup) {
+                if (typeof geoJsonGroup.eachLayer !== 'function') return;
+                geoJsonGroup.eachLayer(function (polyLayer) {
+                    polyLayer.setStyle(defaultWaldStyle(polyLayer.feature));
+                });
+            });
+            if (root.map && root.map.hasLayer(root.waldLayer)) {
+                root.map.removeLayer(root.waldLayer);
+            }
+            const cbWald = document.getElementById('cb-waldrefugien');
+            if (cbWald) cbWald.checked = false;
+        }
+
+        renderLexikonDock();
+    };
+
+    // ========================================================================
+    // 3. KOMPAKTE VORSCHAU IM KARTEN-KLICK-POPUP (Ohne Redundanz!)
     // ========================================================================
     root.baueSckmPopupBlock = function (standortDaten) {
         const eng = root.SCKM_ENGINE;
         if (!eng) return '';
         const evalRes = eng.evaluateLocationKnowledge(standortDaten, state.selectedSpeciesId);
         const top = evalRes.topResult;
-        const ctx = evalRes.context;
 
         const top3Html = evalRes.rankings
             .slice(0, 3)
@@ -168,7 +483,7 @@
     };
 
     // ========================================================================
-    // 3. LUPEN-PANEL (🔍 STANDORT-ERKLÄRUNG OHNE REDUNDANZ)
+    // 4. LUPEN-PANEL (🔍 STANDORT-ERKLÄRUNG OHNE REDUNDANZ)
     // ========================================================================
     root.toggleWissenstreppePanel = function () {
         state.panelOffen = !state.panelOffen;
@@ -297,7 +612,7 @@
             })
             .join('');
 
-        // 3. Die 4 kombinierten Standort-Faktoren (Messwert + Erklärung in EINER Box statt redundant über 3 Tabs!)
+        // 3. Die 4 kombinierten Standort-Faktoren
         const rulesHtml = active.rules
             .map(function (rule) {
                 const icon =
@@ -369,7 +684,7 @@
               hl('Handstraußregel') +
               ' (max. 1 kg für den Eigenbedarf) gilt.</div>';
 
-        // 5. Optional aufklappbare Wissenstreppe (Stufe 1-4 Übersicht & Rohdaten für SCKM-Modul)
+        // 5. Optional aufklappbare Wissenstreppe
         const wissenstreppeDetailsHtml = state.showWissenstreppeDetails
             ? '<div class="sckm-wt-details">' +
               '<div class="sckm-wt-steps-list">' +
@@ -406,7 +721,6 @@
             : '';
 
         container.innerHTML =
-            // Block 0: Standort-Kopf & Beispiel-Orte
             '<div class="sckm-standort-bar">' +
             '<div class="sckm-st-title">📍 <b>' +
             ctx.ortsName +
@@ -420,22 +734,19 @@
             demoButtonsHtml +
             '</div>' +
             '</div>' +
-            // Hinweis auf klickbare Fachbegriffe
-            '<div class="sckm-tip-strip">💡 <span>Grün markierte Begriffe (z. B. ' +
+            '<div class="sckm-tip-strip">💡 <span>Klicke auf grün markierte Begriffe (z. B. ' +
             hl('Mykorrhiza') +
             ', ' +
-            hl('pH-Wert') +
+            hl('Fichte') +
             ', ' +
-            hl('Zeigerpflanze') +
-            ') kannst du anklicken!</span></div>' +
-            // Block 1: Pilz-Auswahl
+            hl('Heidelbeere') +
+            ') – es öffnet sich direkt der bebilderte Eintrag im <b>📖 Einsteiger-Lexikon</b>!</span></div>' +
             '<div class="sckm-card">' +
             '<h4>1️⃣ Welchen Pilz möchtest du hier prüfen?</h4>' +
             '<div class="sckm-species-grid">' +
             rankingPills +
             '</div>' +
             '</div>' +
-            // Block 2: Warum X%? (Kombinierte Glass-Box Erklärung ohne Redundanz)
             '<div class="sckm-card sckm-glassbox-card" style="border-top:4px solid ' +
             active.ampelfarbe +
             ';">' +
@@ -471,7 +782,6 @@
             '<div class="sckm-rules-list">' +
             rulesHtml +
             '</div>' +
-            // Interaktive Baum-Anpassung vor Ort
             '<div class="sckm-hitl-box">' +
             '<b>🌲 Welche Bäume siehst du vor Ort? (Klick passt die % sofort an):</b>' +
             '<div class="sckm-chip-wrap" style="margin-top:6px;">' +
@@ -479,7 +789,6 @@
             '</div>' +
             '</div>' +
             '</div>' +
-            // Block 3: Sicher sammeln & Handeln
             '<div class="sckm-card">' +
             '<h4>3️⃣ Sicher sammeln & Nächster Schritt</h4>' +
             rechtBanner +
@@ -492,14 +801,13 @@
             '</p>' +
             '</div>' +
             '<div style="display:flex;gap:7px;margin-top:4px;">' +
-            '<button type="button" class="sckm-act-primary" style="flex:1;" onclick="window.sckmStarteRouteZuStandort(' +
-            ctx.lat +
-            ',' +
-            ctx.lng +
-            ')">🚀 Route hierhin</button>' +
-            '<button type="button" class="sckm-graph-btn" style="flex:1;" onclick="window.oeffneLexikonDock(\'graph\')">🕸️ Im Wissensgraph zeigen</button>' +
+            '<button type="button" class="sckm-act-primary" style="flex:1;" onclick="window.oeffneLexikonEintrag(\'mushroom:' +
+            active.species.id +
+            '\')">📖 Im Bild-Lexikon zeigen</button>' +
+            '<button type="button" class="sckm-graph-btn" style="flex:1;" onclick="window.oeffneLexikonDock(\'graph\');window.klickSckmGraphKnoten(\'mushroom:' +
+            active.species.id +
+            '\')">🕸️ Regionen im Graph & Karte</button>' +
             '</div>' +
-            // Aufklapp-Button für die 4 Stufen der Wissenstreppe (SCKM-Theorie)
             '<button type="button" class="sckm-wt-toggle" onclick="window.toggleWissenstreppeDetails()">' +
             (state.showWissenstreppeDetails
                 ? '▲ SCKM-Wissenstreppe (Stufe 1–4) & Rohdaten ausblenden'
@@ -510,7 +818,7 @@
     }
 
     // ========================================================================
-    // 4. DIREKT-MENÜ: PILZ-LEXIKON & WISSENSGRAPH (📖)
+    // 5. DIREKT-MENÜ: BEBILDERTES PILZ-LEXIKON & WISSENSGRAPH (📖)
     // ========================================================================
     root.toggleKnowledgeGraphDock = function (forceOpen) {
         state.dockOffen = typeof forceOpen === 'boolean' ? forceOpen : !state.dockOffen;
@@ -543,6 +851,8 @@
             state.selectedSpeciesId = nodeId.replace('mushroom:', '');
             saveLocalState();
         }
+        // Interaktion Graph -> Karte: Passende Regionen in Baden-Württemberg leuchten auf!
+        root.hebeGraphKnotenAufKarteHervor(nodeId);
         renderLexikonDock();
         if (state.panelOffen) renderWissenstreppePanel();
     };
@@ -571,10 +881,14 @@
 
         const ont = root.SCKM_ONTOLOGY;
         const graphMod = root.SCKM_GRAPH;
+        const illMod = root.SCKM_ILLUSTRATIONS;
         const evalRes = getEvaluation();
         if (!ont || !graphMod || !evalRes) return;
 
         const hl = ont.highlightGlossaryTerms;
+        const getSvg = function (id) {
+            return illMod && typeof illMod.getSvg === 'function' ? illMod.getSvg(id) : '';
+        };
 
         // Tab-Umschalter im Dock-Header aktualisieren
         const tabGraphBtn = document.getElementById('sckm-dock-tab-graph');
@@ -582,7 +896,7 @@
         if (tabGraphBtn) tabGraphBtn.classList.toggle('aktiv', state.dockTab === 'graph');
         if (tabLexBtn) tabLexBtn.classList.toggle('aktiv', state.dockTab === 'lexikon');
 
-        // --- TAB A: VISUELLER WISSENSGRAPH ---
+        // --- TAB A: VISUELLER WISSENSGRAPH (MIT KARTEN-HERVORHEBUNG) ---
         if (state.dockTab === 'graph') {
             const graphData = graphMod.buildKnowledgeGraph(evalRes, state.focusedGraphNodeId);
             const svgHtml = graphMod.renderKnowledgeGraphSvg(graphData);
@@ -619,34 +933,49 @@
                 })
                 .join('');
 
-            const layerBtnLabels = {
-                ph: '🧪 Boden-pH-Karte einblenden',
-                bwi: '🌿 Zeigerpflanzen-Karte einblenden',
-                waldrefugien: '🌲 Baumarten-Karte (ForstBW) einblenden',
-                fundstellen: '🍄 Pilzfunde-Layer einblenden'
-            };
+            const hlSummary = state.activeMapHighlightSummary;
+            const mapHighlightBannerHtml = hlSummary
+                ? '<div class="sckm-map-hl-banner">' +
+                  '<span>✨ <b>Auf Karte hervorgehoben:</b> Regionen für <b>' +
+                  hlSummary.label +
+                  '</b> leuchten auf (' +
+                  hlSummary.bwiMatches +
+                  ' BWI-Waldzellen' +
+                  (hlSummary.waldMatches > 0
+                      ? ' + ' + hlSummary.waldMatches + ' ForstBW-Bestände'
+                      : '') +
+                  ')</span>' +
+                  '<button type="button" class="sckm-map-hl-reset" onclick="window.setzeKartenHervorhebungZurueck()">↺ Karten-Filter zurücksetzen</button>' +
+                  '</div>'
+                : '<div class="sckm-map-hl-banner" style="background:#f8fafc;border-color:#cbd5e1;color:#334155;">' +
+                  '<span>👆 <b>Tipp:</b> Klicke unten im Graphen auf einen <b>pH-Wert</b>, <b>Baum</b>, <b>Pilz</b> oder eine <b>Zeigerpflanze</b> – die passenden Regionen in BW leuchten sofort auf der Karte auf!</span>' +
+                  '<button type="button" class="sckm-layer-link-btn" onclick="window.klickSckmGraphKnoten(\'' +
+                  (focusedNode ? focusedNode.id : 'mushroom:boletus-edulis') +
+                  '\')">✨ Aktuellen Knoten auf Karte zeigen</button>' +
+                  '</div>';
 
-            const layerBtnHtml =
-                focusedNode && focusedNode.layerHint && layerBtnLabels[focusedNode.layerHint]
-                    ? '<button type="button" class="sckm-layer-link-btn" onclick="window.aktiviereKartenLayerAusGraph(\'' +
-                      focusedNode.layerHint +
-                      '\')">' +
-                      layerBtnLabels[focusedNode.layerHint] +
-                      '</button>'
-                    : '';
+            const lexJumpId =
+                focusedNode && focusedNode.id.indexOf('ph:') === 0
+                    ? 'term:ph_wert'
+                    : focusedNode
+                    ? focusedNode.id
+                    : 'mushroom:boletus-edulis';
 
             container.innerHTML =
                 '<div class="sckm-kg-topbar">' +
+                mapHighlightBannerHtml +
                 '<div class="sckm-kg-meta">' +
-                '<span class="sckm-kg-dot-legend">● Grün = Vorhanden am Ort (<b>' +
+                '<span class="sckm-kg-dot-legend">● Grün = Vorhanden am gewählten Ort (<b>' +
                 evalRes.context.ortsName.split(' (')[0] +
                 '</b>)</span>' +
-                '<span class="sckm-kg-focus-badge">Ausgewählt: <b>' +
+                '<span class="sckm-kg-focus-badge">Knoten: <b>' +
                 (focusedNode ? focusedNode.label : '') +
                 '</b> (' +
                 (focusedNode ? focusedNode.categoryLabel : '') +
                 ')</span>' +
-                layerBtnHtml +
+                '<button type="button" class="sckm-layer-link-btn" onclick="window.oeffneLexikonEintrag(\'' +
+                lexJumpId +
+                '\')">📖 Im Bild-Lexikon ansehen</button>' +
                 '</div>' +
                 (focusedNode && focusedNode.explanation
                     ? '<div class="sckm-kg-node-explain">💡 <b>' +
@@ -666,60 +995,211 @@
             return;
         }
 
-        // --- TAB B: EINSTEIGER-LEXIKON (PILZ-STECKBRIEFE & FACHBEGRIFFE) ---
-        const speciesCardsHtml = ont.MUSHROOM_SPECIES.map(function (sp) {
-            const svg =
-                (ont.CAP_UNDERSIDE_SVGS && ont.CAP_UNDERSIDE_SVGS[sp.capType || 'roehren']) || '';
-            return (
-                '<div class="sckm-lex-card">' +
-                '<div class="sckm-lex-card-top">' +
-                '<div class="sckm-cap-icon">' +
-                svg +
-                '</div>' +
-                '<div style="flex:1;">' +
-                '<b>🍄 ' +
-                sp.deutscherName +
-                '</b> <small>(' +
-                sp.wissenschaftlicherName +
-                ')</small>' +
-                '<div class="sckm-lex-sub">' +
-                hl(sp.gruppe) +
-                ' · 📅 ' +
-                sp.saisonText +
-                '</div>' +
-                '</div>' +
-                '<button type="button" class="sckm-lex-graph-jump" onclick="window.klickSckmGraphKnoten(\'mushroom:' +
-                sp.id +
-                '\');window.setzeLexikonDockTab(\'graph\')">🕸️ Im Graph</button>' +
-                '</div>' +
-                '<p class="sckm-lex-text">' +
-                hl(sp.kurzsteckbrief) +
-                '</p>' +
-                '<div class="sckm-lex-meta">' +
-                '<span>🌲 <b>Bäume:</b> ' +
-                sp.requiredTrees.join(', ') +
-                '</span>' +
-                '<span>🧪 <b>Boden:</b> pH ' +
-                sp.optimalPhMin.toFixed(1).replace('.', ',') +
-                '–' +
-                sp.optimalPhMax.toFixed(1).replace('.', ',') +
-                '</span>' +
-                '<span>🌿 <b>Zeiger:</b> ' +
-                sp.indicatorPlants.join(', ') +
-                '</span>' +
-                '</div>' +
-                '</div>'
-            );
-        }).join('');
+        // --- TAB B: SCHEMATISCH ILLUSTRIERTES EINSTEIGER-LEXIKON (29 EINTRÄGE) ---
+        const allCards = [];
 
-        const glossaryPillsHtml = Object.keys(ont.GLOSSARY_TERMS)
-            .map(function (k) {
-                const t = ont.GLOSSARY_TERMS[k];
-                return (
-                    '<button type="button" class="sckm-lex-term-btn" onclick="window.zeigeSckmBegriff(\'' +
+        // 1. Pilzarten (6)
+        ont.MUSHROOM_SPECIES.forEach(function (sp) {
+            const entryKey = 'mushroom:' + sp.id;
+            const isHighlighted = state.highlightedLexikonId === entryKey;
+            allCards.push({
+                category: 'mushroom',
+                html:
+                    '<div id="sckm-lex-mushroom-' +
+                    sp.id +
+                    '" class="sckm-lex-card ' +
+                    (isHighlighted ? 'hervorgehoben' : '') +
+                    '">' +
+                    '<div class="sckm-lex-card-top">' +
+                    '<div class="sckm-ill-box" title="Schematische Erkennungsmerkmale: ' +
+                    sp.deutscherName +
+                    '">' +
+                    getSvg(sp.id) +
+                    '</div>' +
+                    '<div style="flex:1;">' +
+                    '<span class="sckm-lex-badge kat-mushroom">🍄 Pilzart</span><br>' +
+                    '<b>' +
+                    sp.deutscherName +
+                    '</b> <small>(' +
+                    sp.wissenschaftlicherName +
+                    ')</small>' +
+                    '<div class="sckm-lex-sub">' +
+                    hl(sp.gruppe) +
+                    ' · 📅 ' +
+                    sp.saisonText +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="sckm-lex-trait-box">🔎 <b>Merkmale:</b> ' +
+                    hl(sp.kurzsteckbrief) +
+                    '</div>' +
+                    '<div class="sckm-lex-meta">' +
+                    '<span>🌲 <b>Bäume:</b> ' +
+                    hl(sp.requiredTrees.join(', ')) +
+                    ' · 🧪 <b>pH:</b> ' +
+                    sp.optimalPhMin.toFixed(1).replace('.', ',') +
+                    '–' +
+                    sp.optimalPhMax.toFixed(1).replace('.', ',') +
+                    ' · 🌿 ' +
+                    hl(sp.indicatorPlants.join(', ')) +
+                    '</span>' +
+                    '<button type="button" class="sckm-lex-graph-jump" onclick="window.setzeLexikonDockTab(\'graph\');window.klickSckmGraphKnoten(\'mushroom:' +
+                    sp.id +
+                    '\')">✨ Auf Karte & Graph</button>' +
+                    '</div>' +
+                    '</div>'
+            });
+        });
+
+        // 2. Baum-Partner (7)
+        ont.TREE_NODES.forEach(function (tr) {
+            const entryKey = 'tree:' + tr.id;
+            const isHighlighted = state.highlightedLexikonId === entryKey;
+            allCards.push({
+                category: 'tree',
+                html:
+                    '<div id="sckm-lex-tree-' +
+                    tr.id +
+                    '" class="sckm-lex-card ' +
+                    (isHighlighted ? 'hervorgehoben' : '') +
+                    '">' +
+                    '<div class="sckm-lex-card-top">' +
+                    '<div class="sckm-ill-box" title="Schematische Erkennungsmerkmale: ' +
+                    tr.label +
+                    '">' +
+                    getSvg(tr.id) +
+                    '</div>' +
+                    '<div style="flex:1;">' +
+                    '<span class="sckm-lex-badge kat-tree">🌲 Baum-Partner</span><br>' +
+                    '<b>' +
+                    tr.label +
+                    '</b>' +
+                    '<div class="sckm-lex-sub">Mykorrhiza- & Substratbaum in BW</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="sckm-lex-trait-box">🔎 <b>So erkennst du ihn:</b> ' +
+                    hl(tr.erkennungsMerkmale || tr.einfacheErklaerung) +
+                    '</div>' +
+                    '<p class="sckm-lex-text"><b>Pilz-Wissen:</b> ' +
+                    hl(tr.einfacheErklaerung) +
+                    '</p>' +
+                    '<div class="sckm-lex-meta">' +
+                    '<span>🗺️ ForstBW-Bestände & BWI-Zellen</span>' +
+                    '<button type="button" class="sckm-lex-graph-jump" onclick="window.setzeLexikonDockTab(\'graph\');window.klickSckmGraphKnoten(\'tree:' +
+                    tr.id +
+                    '\')">✨ Auf Karte & Graph</button>' +
+                    '</div>' +
+                    '</div>'
+            });
+        });
+
+        // 3. Zeigerpflanzen (6)
+        ont.INDICATOR_NODES.forEach(function (pl) {
+            const entryKey = 'plant:' + pl.id;
+            const isHighlighted = state.highlightedLexikonId === entryKey;
+            allCards.push({
+                category: 'plant',
+                html:
+                    '<div id="sckm-lex-plant-' +
+                    pl.id +
+                    '" class="sckm-lex-card ' +
+                    (isHighlighted ? 'hervorgehoben' : '') +
+                    '">' +
+                    '<div class="sckm-lex-card-top">' +
+                    '<div class="sckm-ill-box" title="Schematische Erkennungsmerkmale: ' +
+                    pl.label +
+                    '">' +
+                    getSvg(pl.id) +
+                    '</div>' +
+                    '<div style="flex:1;">' +
+                    '<span class="sckm-lex-badge kat-plant">🌿 Zeigerpflanze</span><br>' +
+                    '<b>' +
+                    pl.label +
+                    '</b>' +
+                    '<div class="sckm-lex-sub">' +
+                    (pl.indiziert || pl.indikatorFuer || 'Boden-Zeigerpflanze') +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="sckm-lex-trait-box">🔎 <b>So erkennst du sie:</b> ' +
+                    hl(pl.erkennungsMerkmale || pl.einfacheErklaerung) +
+                    '</div>' +
+                    '<p class="sckm-lex-text"><b>Boden-Bedeutung:</b> ' +
+                    hl(pl.einfacheErklaerung) +
+                    '</p>' +
+                    '<div class="sckm-lex-meta">' +
+                    '<span>🗺️ BWI-2002 Bodenvegetations-Raster</span>' +
+                    '<button type="button" class="sckm-lex-graph-jump" onclick="window.setzeLexikonDockTab(\'graph\');window.klickSckmGraphKnoten(\'plant:' +
+                    pl.id +
+                    '\')">✨ Auf Karte & Graph</button>' +
+                    '</div>' +
+                    '</div>'
+            });
+        });
+
+        // 4. Fachbegriffe (10)
+        Object.keys(ont.GLOSSARY_TERMS).forEach(function (k) {
+            const t = ont.GLOSSARY_TERMS[k];
+            const entryKey = 'term:' + t.id;
+            const isHighlighted = state.highlightedLexikonId === entryKey;
+            allCards.push({
+                category: 'term',
+                html:
+                    '<div id="sckm-lex-term-' +
                     t.id +
-                    '\')">💡 ' +
+                    '" class="sckm-lex-card ' +
+                    (isHighlighted ? 'hervorgehoben' : '') +
+                    '">' +
+                    '<div class="sckm-lex-card-top">' +
+                    '<div class="sckm-ill-box" title="Schematische Darstellung: ' +
                     t.title +
+                    '">' +
+                    getSvg(t.id) +
+                    '</div>' +
+                    '<div style="flex:1;">' +
+                    '<span class="sckm-lex-badge kat-term">💡 ' +
+                    t.category +
+                    '</span><br>' +
+                    '<b>' +
+                    t.title +
+                    '</b>' +
+                    '<div class="sckm-lex-sub">Einsteiger-Fachbegriff</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<p class="sckm-lex-text">' +
+                    hl(t.shortDef) +
+                    '</p>' +
+                    '<div class="sckm-lex-trait-box">🌲 <b>' +
+                    hl(t.forestTip) +
+                    '</b></div>' +
+                    '</div>'
+            });
+        });
+
+        const visibleCardsHtml = allCards
+            .filter(function (c) {
+                return state.lexikonFilter === 'all' || c.category === state.lexikonFilter;
+            })
+            .map(function (c) {
+                return c.html;
+            })
+            .join('');
+
+        const filterButtons = [
+            { id: 'all', label: 'Alle (' + allCards.length + ')' },
+            { id: 'mushroom', label: '🍄 Pilze (' + ont.MUSHROOM_SPECIES.length + ')' },
+            { id: 'tree', label: '🌲 Bäume (' + ont.TREE_NODES.length + ')' },
+            { id: 'plant', label: '🌿 Zeigerpflanzen (' + ont.INDICATOR_NODES.length + ')' },
+            { id: 'term', label: '💡 Fachbegriffe (' + Object.keys(ont.GLOSSARY_TERMS).length + ')' }
+        ]
+            .map(function (f) {
+                return (
+                    '<button type="button" class="sckm-lex-filter-btn ' +
+                    (state.lexikonFilter === f.id ? 'aktiv' : '') +
+                    '" onclick="window.setzeLexikonFilter(\'' +
+                    f.id +
+                    '\')">' +
+                    f.label +
                     '</button>'
                 );
             })
@@ -727,19 +1207,19 @@
 
         container.innerHTML =
             '<div class="sckm-lex-section">' +
-            '<div class="sckm-lex-glossary-bar">' +
-            '<b>📚 Wichtige Einsteiger-Begriffe (klicken für Erklärung):</b>' +
-            '<div class="sckm-chip-wrap" style="margin-top:5px;">' +
-            glossaryPillsHtml +
+            '<div class="sckm-lex-filter-bar">' +
+            '<div class="sckm-lex-filter-pills">' +
+            filterButtons +
             '</div>' +
+            '<small style="color:#166534;font-weight:600;">🔎 Schematische Grafiken heben die wichtigsten Erkennungsmerkmale hervor</small>' +
             '</div>' +
             '<div class="sckm-lex-grid">' +
-            speciesCardsHtml +
+            visibleCardsHtml +
             '</div>' +
             '</div>';
     }
 
-    // 5. Brücke zu Route & Fund
+    // 6. Brücke zu Route & Fund
     root.sckmStarteRouteZuStandort = function (lat, lng) {
         state.panelOffen = false;
         syncPanelVisibility();

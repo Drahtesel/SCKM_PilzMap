@@ -247,6 +247,7 @@ function _waldBaumart(lwetText) {
     if (t.includes('mischwald'))                           return 'Mischwald';
     return 'Andere';
 }
+window._waldBaumart = _waldBaumart;
 
 fetch('ForstBW_Waldrefugien_-38784724193262813.geojson')
     .then(function(antwort) { return antwort.json(); })
@@ -409,6 +410,7 @@ function getBaumartFarbe(name) {
     if (n === 'mischwald')  return '#4a7a3a';
     return '#4a7ab5';
 }
+window.getBaumartFarbe = getBaumartFarbe;
 
 
 // === 4. Live-Standort abfragen (via watchPosition – kein auto-setView) ===

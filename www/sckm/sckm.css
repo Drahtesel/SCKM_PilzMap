@@ -760,77 +760,218 @@
     user-select: none;
 }
 
-/* === 6. Einsteiger-Lexikon Ansicht im Dock === */
+/* === 6. Einsteiger-Lexikon Ansicht im Dock (mit schematischen SVG-Illustrationen) === */
 .sckm-lex-section {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
-.sckm-lex-glossary-bar {
+.sckm-lex-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     background: #f0fdf4;
     border: 1px solid #bbf7d0;
     border-radius: 10px;
-    padding: 8px 10px;
-    font-size: 0.78em;
+    padding: 7px 10px;
 }
-.sckm-lex-term-btn {
+.sckm-lex-filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.sckm-lex-filter-btn {
     background: #fff;
     border: 1px solid #86efac;
     color: #14532d;
     border-radius: 999px;
-    padding: 3px 9px;
-    font-size: 0.94em;
+    padding: 4px 10px;
+    font-size: 0.76em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.sckm-lex-filter-btn:hover {
+    background: #dcfce7;
+}
+.sckm-lex-filter-btn.aktiv {
+    background: #1a7a45;
+    border-color: #1a7a45;
+    color: #fff;
+}
+.sckm-lex-glossary-bar {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 7px 10px;
+    font-size: 0.75em;
+}
+.sckm-lex-term-btn {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.92em;
     font-weight: 600;
     cursor: pointer;
 }
 .sckm-lex-term-btn:hover {
     background: #dcfce7;
+    border-color: #86efac;
+    color: #14532d;
 }
 .sckm-lex-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 9px;
 }
 .sckm-lex-card {
     background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 9px 10px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 11px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.sckm-lex-card.hervorgehoben {
+    background: #f0fdf4;
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.28), 0 8px 20px rgba(22, 163, 74, 0.16);
+    animation: sckm-card-pulse 1.4s ease-out;
+}
+@keyframes sckm-card-pulse {
+    0% {
+        transform: scale(0.985);
+        box-shadow: 0 0 0 6px rgba(22, 163, 74, 0.45);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.28);
+    }
 }
 .sckm-lex-card-top {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    align-items: flex-start;
+    gap: 10px;
     font-size: 0.82em;
 }
+.sckm-ill-box {
+    width: 112px;
+    height: 78px;
+    border-radius: 9px;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sckm-ill-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.sckm-lex-badge {
+    display: inline-block;
+    font-size: 0.72em;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 1px 7px;
+    border-radius: 999px;
+    margin-bottom: 2px;
+}
+.sckm-lex-badge.kat-mushroom {
+    background: #dcfce7;
+    color: #166534;
+}
+.sckm-lex-badge.kat-tree {
+    background: #e0f2fe;
+    color: #075985;
+}
+.sckm-lex-badge.kat-plant {
+    background: #fef3c7;
+    color: #92400e;
+}
+.sckm-lex-badge.kat-term {
+    background: #f3e8ff;
+    color: #6b21a8;
+}
 .sckm-lex-sub {
-    font-size: 0.88em;
+    font-size: 0.86em;
     color: #64748b;
+    margin-top: 2px;
+}
+.sckm-lex-trait-box {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.75em;
+    color: #78350f;
+    line-height: 1.38;
 }
 .sckm-lex-graph-jump {
     background: #0f172a;
     color: #fff;
     border: none;
     border-radius: 6px;
-    padding: 4px 7px;
-    font-size: 0.85em;
+    padding: 4px 8px;
+    font-size: 0.74em;
     font-weight: 700;
     cursor: pointer;
+    align-self: flex-start;
+}
+.sckm-lex-graph-jump:hover {
+    background: #1a7a45;
 }
 .sckm-lex-text {
     font-size: 0.76em;
     color: #334155;
-    line-height: 1.38;
+    line-height: 1.4;
+    margin: 0;
 }
 .sckm-lex-meta {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
     gap: 4px 8px;
     font-size: 0.72em;
     color: #475569;
+}
+
+/* Aktive Karten-Hervorhebung im Graph-Header */
+.sckm-map-hl-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: linear-gradient(135deg, #ecfdf5, #dcfce7);
+    border: 1.5px solid #22c55e;
+    border-radius: 9px;
+    padding: 5px 10px;
+    font-size: 0.77em;
+    color: #14532d;
+}
+.sckm-map-hl-reset {
+    background: #14532d;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 0.92em;
+    font-weight: 700;
+    cursor: pointer;
+}
+.sckm-map-hl-reset:hover {
+    background: #dc2626;
 }
 
 @media (max-width: 640px) {

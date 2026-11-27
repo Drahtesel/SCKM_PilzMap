@@ -1,5 +1,7 @@
 // ============================================================================
 // SCKM Wissensbasis, Einsteiger-Glossar & Ontologie (www/sckm/ontology.js)
+// Alle grün markierten Begriffe im Text öffnen direkt den bebilderten Eintrag
+// im bestehenden Einsteiger-Lexikon (📖).
 // ============================================================================
 
 (function (root) {
@@ -41,7 +43,7 @@
             shortDef:
                 'Röhrlinge (z. B. Steinpilz, Maronen-Röhrling) haben auf der Hutunterseite ein Polster aus feinen Röhrchen, das wie ein Badeschwamm aussieht.',
             forestTip:
-                'Praxis-Tipp: Für Einsteiger die sicherste Gruppe! In Europa gibt es keinen tödlich giftigen Röhrling (Meide aber Röhrlinge mit roten Poren und den bitteren Gallenröhrling).'
+                'Praxis-Tipp: Für Einsteiger die sicherste Gruppe! In Europa gibt es keinen tödlich giftigen Röhrling (meide aber Röhrlinge mit roten Poren und den bitteren Gallenröhrling).'
         },
         lamellen: {
             id: 'lamellen',
@@ -93,40 +95,54 @@
             title: 'Wissensgraph & Ontologie',
             category: 'Wissensmanagement',
             shortDef:
-                'Ein semantisches Netzwerk, das Regeln als verknüpfte Knoten speichert (z. B. „Fichten-Steinpilz —braucht Symbiose mit→ Fichte“).',
+                'Ein semantisches Netzwerk, das Regeln als verknüpfte Knoten speichert (z. B. „Fichten-Steinpilz —ist Baum-Partner für→ Fichte“).',
             forestTip:
-                'Im Gegensatz zu einer KI-Blackbox kannst du im Wissensgraphen jede Verbindung selbst anklicken und nachvollziehen (Glass-Box).'
+                'Klicke im Wissensgraphen auf einen Knoten (pH-Wert, Baum, Pilz oder Zeigerpflanze), um alle passenden Regionen auf der Karte aufleuchten zu lassen!'
         }
     };
 
-    // 2. Hilfsfunktion: Markiert Fachbegriffe im Text automatisch als klickbare Info-Buttons
+    // 2. Markiert Fachbegriffe, Bäume und Zeigerpflanzen im Text und öffnet
+    //    beim Klick IMMER das bebilderte Einsteiger-Lexikon beim jeweiligen Eintrag!
     const TERM_PATTERNS = [
-        { regex: /\b(ektomykorrhizischer Symbiose|Mykorrhiza|Symbiose-Partner|Symbiose-Baum|Symbiose)\b/gi, id: 'mykorrhiza' },
-        { regex: /\b(Boden-pH|pH-Wert|pH\s*[0-9],[0-9]|saurer Rohhumus|sauren Böden)\b/gi, id: 'ph_wert' },
-        { regex: /\b(Zeigerpflanzen|Zeigerpflanze|Säurezeiger)\b/gi, id: 'zeigerpflanze' },
-        { regex: /\b(Röhrlinge|Röhrling|Röhrenfutter|Röhren)\b/gi, id: 'roehrling' },
-        { regex: /\b(Lamellen)\b/gi, id: 'lamellen' },
-        { regex: /\b(Leistenpilz|Leisten)\b/gi, id: 'leistenpilz' },
-        { regex: /\b(Bannwald|Naturschutzgebiet|Nationalpark)\b/gi, id: 'bannwald' },
-        { regex: /\b(Handstraußregel|Eigenbedarf)\b/gi, id: 'sammelregel' },
-        { regex: /\b(Wissenstreppe)\b/gi, id: 'wissenstreppe' },
-        { regex: /\b(Ontologie|Wissensgraph)\b/gi, id: 'ontologie' }
+        // Fachbegriffe
+        { regex: /\b(ektomykorrhizischer Symbiose|Mykorrhiza-Partnerschaft|Mykorrhiza|Symbiose-Partner|Symbiose-Baum|Symbiose)\b/gi, id: 'term:mykorrhiza' },
+        { regex: /\b(Boden-pH|pH-Wert|pH\s*[0-9],[0-9]|saurer Rohhumus|sauren Böden)\b/gi, id: 'term:ph_wert' },
+        { regex: /\b(Zeigerpflanzen|Zeigerpflanze|Säurezeiger)\b/gi, id: 'term:zeigerpflanze' },
+        { regex: /\b(Röhrlinge|Röhrling|Röhren-Polster|Röhrenfutter|Röhren)\b/gi, id: 'term:roehrling' },
+        { regex: /\b(Lamellen)\b/gi, id: 'term:lamellen' },
+        { regex: /\b(Leistenpilz|Leisten)\b/gi, id: 'term:leistenpilz' },
+        { regex: /\b(Bannwald|Naturschutzgebiet|Nationalpark)\b/gi, id: 'term:bannwald' },
+        { regex: /\b(Handstraußregel|Eigenbedarf)\b/gi, id: 'term:sammelregel' },
+        { regex: /\b(Wissenstreppe)\b/gi, id: 'term:wissenstreppe' },
+        { regex: /\b(Ontologie|Wissensgraph)\b/gi, id: 'term:ontologie' },
+        // Zeigerpflanzen -> direkt zum Bild im Lexikon
+        { regex: /\b(Heidelbeersträucher|Heidelbeeren|Heidelbeere)\b/gi, id: 'plant:Heidelbeere' },
+        { regex: /\b(Drahtschmiele)\b/gi, id: 'plant:Drahtschmiele' },
+        { regex: /\b(Preiselbeeren|Preiselbeere)\b/gi, id: 'plant:Preiselbeere' },
+        { regex: /\b(Heidekraut)\b/gi, id: 'plant:Heidekraut' },
+        { regex: /\b(Waldmeister)\b/gi, id: 'plant:Waldmeister' },
+        { regex: /\b(Bärlauch|Baerlauch)\b/gi, id: 'plant:Baerlauch' },
+        // Bäume -> direkt zum Bild im Lexikon
+        { regex: /\b(Fichten|Fichte)\b/g, id: 'tree:Fichte' },
+        { regex: /\b(Weißtannen|Weißtanne|Tannen|Tanne)\b/g, id: 'tree:Tanne' },
+        { regex: /\b(Waldkiefern|Kiefern|Kiefer)\b/g, id: 'tree:Kiefer' },
+        { regex: /\b(Buchen|Buche)\b/g, id: 'tree:Buche' },
+        { regex: /\b(Eichen|Eiche)\b/g, id: 'tree:Eiche' },
+        { regex: /\b(Birken|Birke)\b/g, id: 'tree:Birke' },
+        { regex: /\b(Eschen|Esche)\b/g, id: 'tree:Esche' }
     ];
 
     function highlightGlossaryTerms(rawText) {
         if (!rawText) return '';
         let result = String(rawText);
-        // Schütze bereits ersetzte Tags über Platzhalter
         const placeholders = [];
         TERM_PATTERNS.forEach(function (pat) {
             result = result.replace(pat.regex, function (match) {
                 const token = '___SCKM_TERM_' + placeholders.length + '___';
                 placeholders.push(
-                    '<button type="button" class="sckm-term" onclick="event.stopPropagation();window.zeigeSckmBegriff(\'' +
+                    '<button type="button" class="sckm-term" onclick="event.stopPropagation();window.oeffneLexikonEintrag(\'' +
                         pat.id +
-                        '\')" title="Begriff erklären: ' +
-                        GLOSSARY_TERMS[pat.id].title +
-                        '">' +
+                        '\')" title="Im bebilderten Einsteiger-Lexikon öffnen">' +
                         match +
                         '</button>'
                 );
@@ -139,7 +155,7 @@
         return result;
     }
 
-    // 3. Visuelle Mini-SVGs für den "Unter-dem-Hut-Check" (Röhren vs. Leisten vs. Lamellen)
+    // 3. Visuelle Mini-SVGs für den "Unter-dem-Hut-Check"
     const CAP_UNDERSIDE_SVGS = {
         roehren:
             '<svg viewBox="0 0 64 42" width="54" height="36" aria-hidden="true"><path d="M6 22 C6 8, 58 8, 58 22 Z" fill="#8b5a2b"/><rect x="8" y="22" width="48" height="6" rx="3" fill="#e6d690" stroke="#b5a642" stroke-width="1"/><circle cx="15" cy="25" r="1" fill="#8b7d3b"/><circle cx="21" cy="25" r="1" fill="#8b7d3b"/><circle cx="27" cy="25" r="1" fill="#8b7d3b"/><circle cx="33" cy="25" r="1" fill="#8b7d3b"/><circle cx="39" cy="25" r="1" fill="#8b7d3b"/><circle cx="45" cy="25" r="1" fill="#8b7d3b"/><circle cx="51" cy="25" r="1" fill="#8b7d3b"/><path d="M25 28 L23 40 L41 40 L39 28 Z" fill="#f5ebe0" stroke="#d5c4a1"/></svg>',
@@ -235,59 +251,75 @@
         }
     ];
 
-    // 6. Baumarten-Knoten (Spalte 2 im Wissensgraph)
+    // 6. Baumarten-Knoten (Spalte 2 im Wissensgraph & Lexikon)
     const TREE_NODES = [
         {
             id: 'Fichte',
             label: 'Fichte',
             gruppe: 'Nadelbaum',
+            erkennungsMerkmale:
+                'Vierkantige, spitze Einzelnadeln rings um den Zweig (stechen beim Zugreifen) und als Ganzes herabhängende Zapfen.',
             einfacheErklaerung: 'Wichtigster Partnerbaum für Fichten-Steinpilz, Maronen-Röhrling und Pfifferling.'
         },
         {
             id: 'Tanne',
             label: 'Weißtanne',
             gruppe: 'Nadelbaum',
+            erkennungsMerkmale:
+                'Flache, weiche, stumpfe Nadeln mit 2 weißen Wachsstreifen auf der Unterseite; die Zapfen stehen aufrecht wie Kerzen auf dem Ast!',
             einfacheErklaerung: 'Charakterbaum des Schwarzwalds; teilt sich viele Mykorrhiza-Pilze mit der Fichte.'
         },
         {
             id: 'Kiefer',
             label: 'Kiefer',
             gruppe: 'Nadelbaum',
+            erkennungsMerkmale:
+                'Lange, biegsame Nadeln, die immer paarweise (zu zweit) aus einer kurzen Scheide wachsen; runde Zapfen und rötlich-plattige Rinde.',
             einfacheErklaerung: 'Einziger Wirtsbaum der Krausen Glucke und wichtiger Partner des Maronen-Röhrlings.'
         },
         {
             id: 'Buche',
             label: 'Buche',
             gruppe: 'Laubbaum',
+            erkennungsMerkmale:
+                'Glatte, silbergraue Rinde („Elefantenhaut“) und eiförmige Blätter mit glattem, leicht welligem Rand und geraden Seitennerven.',
             einfacheErklaerung: 'Häufigster Laubbaum in BW; Partner für Steinpilze, Sommer-Steinpilze und Pfifferlinge.'
         },
         {
             id: 'Eiche',
             label: 'Eiche',
             gruppe: 'Laubbaum',
+            erkennungsMerkmale:
+                'Charakteristisch gelappte (gebuchtete) Blätter, tiefgefurchte Borke und Eicheln mit kleinem Schuppen-Hütchen.',
             einfacheErklaerung: 'Wärmeliebender Laubbaum; Top-Partner für den Sommer-Steinpilz und Pfifferling.'
         },
         {
             id: 'Birke',
             label: 'Birke',
             gruppe: 'Laubbaum',
+            erkennungsMerkmale:
+                'Unverwechselbare weiße Rinde mit schwarzen Querstreifen sowie kleine, dreieckig-rautenförmige Blätter mit doppelt gesägtem Rand.',
             einfacheErklaerung: 'Pionierbaum auf lichten Waldböden (bekannt für Birkenpilze und Pfifferlinge).'
         },
         {
             id: 'Esche',
             label: 'Esche',
             gruppe: 'Laubbaum',
+            erkennungsMerkmale:
+                'Große, unpaarig gefiederte Blätter (9–13 Einzelblättchen an einer Mittelrippe) und schwarze Knospen; liebt feuchte, kalkreiche Böden.',
             einfacheErklaerung: 'Typischer Baum feuchter, kalkreicher Auwälder – das klassische Habitat der Speisemorchel.'
         }
     ];
 
-    // 7. Zeigerpflanzen (Spalte 4 im Wissensgraph)
+    // 7. Zeigerpflanzen (Spalte 4 im Wissensgraph & Lexikon)
     const INDICATOR_NODES = [
         {
             id: 'Heidelbeere',
             label: 'Heidelbeere',
             bwiField: 'sbv02',
             indiziert: 'Zeigt sauren Waldboden (pH < 5,0)',
+            erkennungsMerkmale:
+                'Grüne, scharfkantige Zweige, weiche sommergrüne Blättchen und blauschwarze, innen dunkelrote Beeren.',
             einfacheErklaerung: 'Wo Heidelbeersträucher im Nadelwald wachsen, sind Steinpilz, Marone und Pfifferling oft nicht weit!'
         },
         {
@@ -295,6 +327,8 @@
             label: 'Drahtschmiele',
             bwiField: 'sbv01',
             indiziert: 'Feines Waldgras auf saurem Boden',
+            erkennungsMerkmale:
+                'Büschel aus haardünnen, borstig-drahtigen Grasblättern mit silbrig glänzenden, geschlängelten Rispenästen.',
             einfacheErklaerung: 'Sehr häufiges, drahtiges Gras auf sauren Waldböden – ein verlässlicher Säurezeiger.'
         },
         {
@@ -302,6 +336,8 @@
             label: 'Preiselbeere',
             bwiField: 'sbv03',
             indiziert: 'Zeigt stark sauren Nadelwald',
+            erkennungsMerkmale:
+                'Immergrüne, derb-lederartige, glänzende Blätter mit umgerolltem Rand und leuchtend rote Beeren.',
             einfacheErklaerung: 'Immergrüner Zwergstrauch auf mageren, sauren Kiefern- und Fichtenböden.'
         },
         {
@@ -309,6 +345,8 @@
             label: 'Heidekraut',
             bwiField: 'sbv04',
             indiziert: 'Lichter, saurer Sandboden',
+            erkennungsMerkmale:
+                'Winzige, dachziegelartig anliegende Schuppenblättchen und violett-rosa Blütenähren im Spätsommer/Herbst.',
             einfacheErklaerung: 'Typisch für lichte Kiefernwälder, in denen Krause Glucke und Maronen-Röhrling wachsen.'
         },
         {
@@ -316,6 +354,8 @@
             label: 'Waldmeister',
             bwiField: null,
             indiziert: 'Zeigt kalk-/basenreichen Buchenwald',
+            erkennungsMerkmale:
+                '6 bis 8 lanzettliche Blätter stehen sternförmig wie ein Wagenrad (Quirl) rund um den vierkantigen Stängel.',
             einfacheErklaerung: 'Wächst auf milden bis kalkhaltigen Laubwaldböden – gut für den Sommer-Steinpilz.'
         },
         {
@@ -323,6 +363,8 @@
             label: 'Bärlauch',
             bwiField: null,
             indiziert: 'Feuchter, kalkreicher Auwald',
+            erkennungsMerkmale:
+                'Breite, saftig-grüne lanzettliche Blätter, die beim Zerreiben intensiv nach Knoblauch riechen, plus weiße Sternblüten im Frühling.',
             einfacheErklaerung: 'Nach Knoblauch duftende Frühjahrspflanze – zeigt im April/Mai gute Morchel-Standorte an.'
         }
     ];
@@ -338,7 +380,7 @@
             einsteigerFreundlich: true,
             essbarkeit: 'Essbar · Beliebter Einsteigerpilz',
             kurzsteckbrief:
-                'Brauner Hut, weißes bis gelbgrünes Röhren-Polster (Schwamm) unter dem Hut, kräftiger Stiel mit feinem weißem Netz.',
+                'Brauner Hut mit hellerem Rand, weißes bis gelbgrünes Röhren-Polster (Schwamm) unter dem Hut, kräftiger Stiel mit feinem weißem Netz.',
             requiredPhCategories: ['stark_sauer', 'maessig_sauer'],
             optimalPhMin: 4.0,
             optimalPhMax: 5.8,
@@ -365,7 +407,7 @@
             einsteigerFreundlich: true,
             essbarkeit: 'Essbar · Sehr häufiger Einsteigerpilz',
             kurzsteckbrief:
-                'Kastanienbrauner Hut; die gelblichen Röhren unter dem Hut verfärben sich bei Fingerdruck deutlich blaugrün.',
+                'Kastanienbrauner Hut; die gelblichen Röhren unter dem Hut verfärben sich bei Fingerdruck deutlich blaugrün. Stiel ohne Netz.',
             requiredPhCategories: ['stark_sauer', 'maessig_sauer'],
             optimalPhMin: 3.6,
             optimalPhMax: 5.4,
