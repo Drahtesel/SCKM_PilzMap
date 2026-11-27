@@ -995,202 +995,241 @@
             return;
         }
 
-        // --- TAB B: SCHEMATISCH ILLUSTRIERTES EINSTEIGER-LEXIKON (29 EINTRÄGE) ---
-        const allCards = [];
-
-        // 1. Pilzarten (6)
-        ont.MUSHROOM_SPECIES.forEach(function (sp) {
+        // --- TAB B: SCHEMATISCH ILLUSTRIERTES EINSTEIGER-LEXIKON (KLAR IN 4 KATEGORIEN UNTERTEILT) ---
+        const mushroomCards = ont.MUSHROOM_SPECIES.map(function (sp) {
             const entryKey = 'mushroom:' + sp.id;
             const isHighlighted = state.highlightedLexikonId === entryKey;
-            allCards.push({
-                category: 'mushroom',
-                html:
-                    '<div id="sckm-lex-mushroom-' +
-                    sp.id +
-                    '" class="sckm-lex-card ' +
-                    (isHighlighted ? 'hervorgehoben' : '') +
-                    '">' +
-                    '<div class="sckm-lex-card-top">' +
-                    '<div class="sckm-ill-box" title="Schematische Erkennungsmerkmale: ' +
-                    sp.deutscherName +
-                    '">' +
-                    getSvg(sp.id) +
-                    '</div>' +
-                    '<div style="flex:1;">' +
-                    '<span class="sckm-lex-badge kat-mushroom">🍄 Pilzart</span><br>' +
-                    '<b>' +
-                    sp.deutscherName +
-                    '</b> <small>(' +
-                    sp.wissenschaftlicherName +
-                    ')</small>' +
-                    '<div class="sckm-lex-sub">' +
-                    hl(sp.gruppe) +
-                    ' · 📅 ' +
-                    sp.saisonText +
-                    '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="sckm-lex-trait-box">🔎 <b>Merkmale:</b> ' +
-                    hl(sp.kurzsteckbrief) +
-                    '</div>' +
-                    '<div class="sckm-lex-meta">' +
-                    '<span>🌲 <b>Bäume:</b> ' +
-                    hl(sp.requiredTrees.join(', ')) +
-                    ' · 🧪 <b>pH:</b> ' +
-                    sp.optimalPhMin.toFixed(1).replace('.', ',') +
-                    '–' +
-                    sp.optimalPhMax.toFixed(1).replace('.', ',') +
-                    ' · 🌿 ' +
-                    hl(sp.indicatorPlants.join(', ')) +
-                    '</span>' +
-                    '<button type="button" class="sckm-lex-graph-jump" onclick="window.setzeLexikonDockTab(\'graph\');window.klickSckmGraphKnoten(\'mushroom:' +
-                    sp.id +
-                    '\')">✨ Auf Karte & Graph</button>' +
-                    '</div>' +
-                    '</div>'
-            });
+            return (
+                '<div id="sckm-lex-mushroom-' +
+                sp.id +
+                '" class="sckm-lex-card ' +
+                (isHighlighted ? 'hervorgehoben' : '') +
+                '">' +
+                '<div class="sckm-lex-card-top">' +
+                '<div class="sckm-ill-box" title="Schematische Erkennungsmerkmale: ' +
+                sp.deutscherName +
+                '">' +
+                getSvg(sp.id) +
+                '</div>' +
+                '<div class="sckm-lex-card-head">' +
+                '<span class="sckm-lex-badge kat-mushroom">🍄 Pilzart</span>' +
+                '<h5 class="sckm-lex-title">' +
+                sp.deutscherName +
+                ' <small>(' +
+                sp.wissenschaftlicherName +
+                ')</small></h5>' +
+                '<div class="sckm-lex-sub">' +
+                hl(sp.gruppe) +
+                ' · 📅 ' +
+                sp.saisonText +
+                '</div>' +
+                '<div class="sckm-lex-trait-box">🔎 <b>Merkmale:</b> ' +
+                hl(sp.kurzsteckbrief) +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="sckm-lex-meta">' +
+                '<span>🌲 <b>Bäume:</b> ' +
+                hl(sp.requiredTrees.join(', ')) +
+                ' · 🧪 <b>pH:</b> ' +
+                sp.optimalPhMin.toFixed(1).replace('.', ',') +
+                '–' +
+                sp.optimalPhMax.toFixed(1).replace('.', ',') +
+                ' · 🌿 <b>Zeiger:</b> ' +
+                hl(sp.indicatorPlants.join(', ').replace(/Baerlauch/g, 'Bärlauch')) +
+                '</span>' +
+                '<button type="button" class="sckm-lex-graph-jump" onclick="window.setzeLexikonDockTab(\'graph\');window.klickSckmGraphKnoten(\'mushroom:' +
+                sp.id +
+                '\')">✨ Auf Karte &amp; Graph</button>' +
+                '</div>' +
+                '</div>'
+            );
         });
 
-        // 2. Baum-Partner (7)
-        ont.TREE_NODES.forEach(function (tr) {
+        const treeCards = ont.TREE_NODES.map(function (tr) {
             const entryKey = 'tree:' + tr.id;
             const isHighlighted = state.highlightedLexikonId === entryKey;
-            allCards.push({
-                category: 'tree',
-                html:
-                    '<div id="sckm-lex-tree-' +
-                    tr.id +
-                    '" class="sckm-lex-card ' +
-                    (isHighlighted ? 'hervorgehoben' : '') +
-                    '">' +
-                    '<div class="sckm-lex-card-top">' +
-                    '<div class="sckm-ill-box" title="Schematische Erkennungsmerkmale: ' +
-                    tr.label +
-                    '">' +
-                    getSvg(tr.id) +
-                    '</div>' +
-                    '<div style="flex:1;">' +
-                    '<span class="sckm-lex-badge kat-tree">🌲 Baum-Partner</span><br>' +
-                    '<b>' +
-                    tr.label +
-                    '</b>' +
-                    '<div class="sckm-lex-sub">Mykorrhiza- & Substratbaum in BW</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="sckm-lex-trait-box">🔎 <b>So erkennst du ihn:</b> ' +
-                    hl(tr.erkennungsMerkmale || tr.einfacheErklaerung) +
-                    '</div>' +
-                    '<p class="sckm-lex-text"><b>Pilz-Wissen:</b> ' +
-                    hl(tr.einfacheErklaerung) +
-                    '</p>' +
-                    '<div class="sckm-lex-meta">' +
-                    '<span>🗺️ ForstBW-Bestände & BWI-Zellen</span>' +
-                    '<button type="button" class="sckm-lex-graph-jump" onclick="window.setzeLexikonDockTab(\'graph\');window.klickSckmGraphKnoten(\'tree:' +
-                    tr.id +
-                    '\')">✨ Auf Karte & Graph</button>' +
-                    '</div>' +
-                    '</div>'
-            });
+            return (
+                '<div id="sckm-lex-tree-' +
+                tr.id +
+                '" class="sckm-lex-card ' +
+                (isHighlighted ? 'hervorgehoben' : '') +
+                '">' +
+                '<div class="sckm-lex-card-top">' +
+                '<div class="sckm-ill-box" title="Schematische Erkennungsmerkmale: ' +
+                tr.label +
+                '">' +
+                getSvg(tr.id) +
+                '</div>' +
+                '<div class="sckm-lex-card-head">' +
+                '<span class="sckm-lex-badge kat-tree">🌲 Baum-Partner (' +
+                (tr.gruppe || 'Waldbaum') +
+                ')</span>' +
+                '<h5 class="sckm-lex-title">' +
+                tr.label +
+                '</h5>' +
+                '<div class="sckm-lex-trait-box">🔎 <b>So erkennst du ihn:</b> ' +
+                hl(tr.erkennungsMerkmale || tr.einfacheErklaerung) +
+                '</div>' +
+                '<p class="sckm-lex-text"><b>Pilz-Bedeutung:</b> ' +
+                hl(tr.einfacheErklaerung) +
+                '</p>' +
+                '</div>' +
+                '</div>' +
+                '<div class="sckm-lex-meta">' +
+                '<span>🗺️ ForstBW-Bestände &amp; BWI-Waldzellen in BW</span>' +
+                '<button type="button" class="sckm-lex-graph-jump" onclick="window.setzeLexikonDockTab(\'graph\');window.klickSckmGraphKnoten(\'tree:' +
+                tr.id +
+                '\')">✨ Auf Karte &amp; Graph</button>' +
+                '</div>' +
+                '</div>'
+            );
         });
 
-        // 3. Zeigerpflanzen (6)
-        ont.INDICATOR_NODES.forEach(function (pl) {
+        const plantCards = ont.INDICATOR_NODES.map(function (pl) {
             const entryKey = 'plant:' + pl.id;
             const isHighlighted = state.highlightedLexikonId === entryKey;
-            allCards.push({
-                category: 'plant',
-                html:
-                    '<div id="sckm-lex-plant-' +
-                    pl.id +
-                    '" class="sckm-lex-card ' +
-                    (isHighlighted ? 'hervorgehoben' : '') +
-                    '">' +
-                    '<div class="sckm-lex-card-top">' +
-                    '<div class="sckm-ill-box" title="Schematische Erkennungsmerkmale: ' +
-                    pl.label +
-                    '">' +
-                    getSvg(pl.id) +
-                    '</div>' +
-                    '<div style="flex:1;">' +
-                    '<span class="sckm-lex-badge kat-plant">🌿 Zeigerpflanze</span><br>' +
-                    '<b>' +
-                    pl.label +
-                    '</b>' +
-                    '<div class="sckm-lex-sub">' +
-                    (pl.indiziert || pl.indikatorFuer || 'Boden-Zeigerpflanze') +
-                    '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="sckm-lex-trait-box">🔎 <b>So erkennst du sie:</b> ' +
-                    hl(pl.erkennungsMerkmale || pl.einfacheErklaerung) +
-                    '</div>' +
-                    '<p class="sckm-lex-text"><b>Boden-Bedeutung:</b> ' +
-                    hl(pl.einfacheErklaerung) +
-                    '</p>' +
-                    '<div class="sckm-lex-meta">' +
-                    '<span>🗺️ BWI-2002 Bodenvegetations-Raster</span>' +
-                    '<button type="button" class="sckm-lex-graph-jump" onclick="window.setzeLexikonDockTab(\'graph\');window.klickSckmGraphKnoten(\'plant:' +
-                    pl.id +
-                    '\')">✨ Auf Karte & Graph</button>' +
-                    '</div>' +
-                    '</div>'
-            });
+            return (
+                '<div id="sckm-lex-plant-' +
+                pl.id +
+                '" class="sckm-lex-card ' +
+                (isHighlighted ? 'hervorgehoben' : '') +
+                '">' +
+                '<div class="sckm-lex-card-top">' +
+                '<div class="sckm-ill-box" title="Schematische Erkennungsmerkmale: ' +
+                pl.label +
+                '">' +
+                getSvg(pl.id) +
+                '</div>' +
+                '<div class="sckm-lex-card-head">' +
+                '<span class="sckm-lex-badge kat-plant">🌿 Zeigerpflanze</span>' +
+                '<h5 class="sckm-lex-title">' +
+                pl.label +
+                '</h5>' +
+                '<div class="sckm-lex-sub">' +
+                (pl.indiziert || pl.indikatorFuer || 'Boden-Zeigerpflanze') +
+                '</div>' +
+                '<div class="sckm-lex-trait-box">🔎 <b>So erkennst du sie:</b> ' +
+                hl(pl.erkennungsMerkmale || pl.einfacheErklaerung) +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="sckm-lex-meta">' +
+                '<span><b>Boden-Hinweis:</b> ' +
+                hl(pl.einfacheErklaerung) +
+                '</span>' +
+                '<button type="button" class="sckm-lex-graph-jump" onclick="window.setzeLexikonDockTab(\'graph\');window.klickSckmGraphKnoten(\'plant:' +
+                pl.id +
+                '\')">✨ Auf Karte &amp; Graph</button>' +
+                '</div>' +
+                '</div>'
+            );
         });
 
-        // 4. Fachbegriffe (10)
-        Object.keys(ont.GLOSSARY_TERMS).forEach(function (k) {
+        const termCards = Object.keys(ont.GLOSSARY_TERMS).map(function (k) {
             const t = ont.GLOSSARY_TERMS[k];
             const entryKey = 'term:' + t.id;
             const isHighlighted = state.highlightedLexikonId === entryKey;
-            allCards.push({
-                category: 'term',
-                html:
-                    '<div id="sckm-lex-term-' +
-                    t.id +
-                    '" class="sckm-lex-card ' +
-                    (isHighlighted ? 'hervorgehoben' : '') +
-                    '">' +
-                    '<div class="sckm-lex-card-top">' +
-                    '<div class="sckm-ill-box" title="Schematische Darstellung: ' +
-                    t.title +
-                    '">' +
-                    getSvg(t.id) +
-                    '</div>' +
-                    '<div style="flex:1;">' +
-                    '<span class="sckm-lex-badge kat-term">💡 ' +
-                    t.category +
-                    '</span><br>' +
-                    '<b>' +
-                    t.title +
-                    '</b>' +
-                    '<div class="sckm-lex-sub">Einsteiger-Fachbegriff</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<p class="sckm-lex-text">' +
-                    hl(t.shortDef) +
-                    '</p>' +
-                    '<div class="sckm-lex-trait-box">🌲 <b>' +
-                    hl(t.forestTip) +
-                    '</b></div>' +
-                    '</div>'
-            });
+            return (
+                '<div id="sckm-lex-term-' +
+                t.id +
+                '" class="sckm-lex-card ' +
+                (isHighlighted ? 'hervorgehoben' : '') +
+                '">' +
+                '<div class="sckm-lex-card-top">' +
+                '<div class="sckm-ill-box" title="Schematische Darstellung: ' +
+                t.title +
+                '">' +
+                getSvg(t.id) +
+                '</div>' +
+                '<div class="sckm-lex-card-head">' +
+                '<span class="sckm-lex-badge kat-term">💡 ' +
+                t.category +
+                '</span>' +
+                '<h5 class="sckm-lex-title">' +
+                t.title +
+                '</h5>' +
+                '<p class="sckm-lex-text">' +
+                hl(t.shortDef) +
+                '</p>' +
+                '<div class="sckm-lex-trait-box">🌲 <b>' +
+                hl(t.forestTip) +
+                '</b></div>' +
+                '</div>' +
+                '</div>' +
+                '</div>'
+            );
         });
 
-        const visibleCardsHtml = allCards
-            .filter(function (c) {
-                return state.lexikonFilter === 'all' || c.category === state.lexikonFilter;
+        const categorySections = [
+            {
+                id: 'mushroom',
+                icon: '🍄',
+                title: '1. Einsteiger-Speisepilze (' + mushroomCards.length + ')',
+                desc: 'Die 6 wichtigsten Speisepilze in Baden-Württemberg mit ihren sicheren Erkennungsmerkmalen, Partnerbäumen und Bodenansprüchen.',
+                cards: mushroomCards
+            },
+            {
+                id: 'tree',
+                icon: '🌲',
+                title: '2. Symbiose- & Partnerbäume (' + treeCards.length + ')',
+                desc: 'Da viele Speisepilze in einer Mykorrhiza-Partnerschaft mit bestimmten Bäumen leben, findest du den Pilz nur, wenn du seinen Partnerbaum erkennst.',
+                cards: treeCards
+            },
+            {
+                id: 'plant',
+                icon: '🌿',
+                title: '3. Zeigerpflanzen – Deine Boden-Detektive (' + plantCards.length + ')',
+                desc: 'Zeigerpflanzen verraten dir direkt beim Waldeinstieg ohne Messgerät, ob der Waldboden sauer (Steinpilz/Marone) oder kalkhaltig (Speisemorchel) ist.',
+                cards: plantCards
+            },
+            {
+                id: 'term',
+                icon: '💡',
+                title: '4. Wichtige Fachbegriffe einfach erklärt (' + termCards.length + ')',
+                desc: 'Grundbegriffe aus Ökologie, Pilzbestimmung, Sammelrecht und Wissensmanagement (SCKM) auf einen Blick.',
+                cards: termCards
+            }
+        ];
+
+        const totalCount =
+            mushroomCards.length + treeCards.length + plantCards.length + termCards.length;
+
+        const visibleSectionsHtml = categorySections
+            .filter(function (sec) {
+                return state.lexikonFilter === 'all' || state.lexikonFilter === sec.id;
             })
-            .map(function (c) {
-                return c.html;
+            .map(function (sec) {
+                return (
+                    '<div class="sckm-lex-cat-block" id="sckm-lex-sec-' +
+                    sec.id +
+                    '">' +
+                    '<div class="sckm-lex-cat-header">' +
+                    '<div>' +
+                    '<h4>' +
+                    sec.icon +
+                    ' ' +
+                    sec.title +
+                    '</h4>' +
+                    '<p>' +
+                    sec.desc +
+                    '</p>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="sckm-lex-grid">' +
+                    sec.cards.join('') +
+                    '</div>' +
+                    '</div>'
+                );
             })
             .join('');
 
         const filterButtons = [
-            { id: 'all', label: 'Alle (' + allCards.length + ')' },
-            { id: 'mushroom', label: '🍄 Pilze (' + ont.MUSHROOM_SPECIES.length + ')' },
-            { id: 'tree', label: '🌲 Bäume (' + ont.TREE_NODES.length + ')' },
-            { id: 'plant', label: '🌿 Zeigerpflanzen (' + ont.INDICATOR_NODES.length + ')' },
-            { id: 'term', label: '💡 Fachbegriffe (' + Object.keys(ont.GLOSSARY_TERMS).length + ')' }
+            { id: 'all', label: 'Alle Kategorien (' + totalCount + ')' },
+            { id: 'mushroom', label: '🍄 1. Pilzarten (' + mushroomCards.length + ')' },
+            { id: 'tree', label: '🌲 2. Bäume (' + treeCards.length + ')' },
+            { id: 'plant', label: '🌿 3. Zeigerpflanzen (' + plantCards.length + ')' },
+            { id: 'term', label: '💡 4. Fachbegriffe (' + termCards.length + ')' }
         ]
             .map(function (f) {
                 return (
@@ -1211,10 +1250,10 @@
             '<div class="sckm-lex-filter-pills">' +
             filterButtons +
             '</div>' +
-            '<small style="color:#166534;font-weight:600;">🔎 Schematische Grafiken heben die wichtigsten Erkennungsmerkmale hervor</small>' +
+            '<small style="color:#166534;font-weight:600;">🔎 Große schematische Grafiken zeigen die Erkennungsmerkmale auf einen Blick</small>' +
             '</div>' +
-            '<div class="sckm-lex-grid">' +
-            visibleCardsHtml +
+            '<div class="sckm-lex-categories-wrap">' +
+            visibleSectionsHtml +
             '</div>' +
             '</div>';
     }

@@ -823,19 +823,51 @@
     border-color: #86efac;
     color: #14532d;
 }
+.sckm-lex-categories-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.sckm-lex-cat-block {
+    background: #ffffff;
+    border: 1px solid #dceee3;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+.sckm-lex-cat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+.sckm-lex-cat-header h4 {
+    margin: 0 0 3px 0;
+    font-size: 0.96em;
+    color: #0f172a;
+}
+.sckm-lex-cat-header p {
+    margin: 0;
+    font-size: 0.77em;
+    color: #475569;
+    line-height: 1.38;
+}
 .sckm-lex-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-    gap: 9px;
+    grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+    gap: 12px;
 }
 .sckm-lex-card {
     background: #f8fafc;
     border: 1.5px solid #e2e8f0;
     border-radius: 12px;
-    padding: 10px 11px;
+    padding: 12px 13px;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    justify-content: space-between;
+    gap: 9px;
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 .sckm-lex-card.hervorgehoben {
@@ -857,20 +889,39 @@
 .sckm-lex-card-top {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    font-size: 0.82em;
+    gap: 14px;
+    font-size: 0.84em;
+}
+.sckm-lex-card-head {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+.sckm-lex-title {
+    margin: 0;
+    font-size: 1.04em;
+    color: #0f172a;
+    line-height: 1.25;
+}
+.sckm-lex-title small {
+    font-weight: 500;
+    color: #64748b;
+    font-size: 0.84em;
 }
 .sckm-ill-box {
-    width: 112px;
-    height: 78px;
-    border-radius: 9px;
+    width: 205px;
+    height: 120px;
+    border-radius: 10px;
     overflow: hidden;
-    border: 1px solid #cbd5e1;
+    border: 1.5px solid #cbd5e1;
     background: #fff;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
 }
 .sckm-ill-svg {
     width: 100%;
@@ -979,5 +1030,15 @@
         left: 6px;
         right: 6px;
         bottom: 6px;
+    }
+    .sckm-lex-grid {
+        grid-template-columns: 1fr;
+    }
+    .sckm-lex-card-top {
+        flex-direction: column;
+    }
+    .sckm-ill-box {
+        width: 100%;
+        height: 135px;
     }
 }
